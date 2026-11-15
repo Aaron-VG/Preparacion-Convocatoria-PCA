@@ -962,7 +962,7 @@ Runner.prototype.finish=function(){
   const item=(w,i)=>`<li class="${w.ok?'r-ok':'r-ko'}" value="${i+1}">
     ${w.q.p?`<details class="rdlg"><summary>Ver el diálogo</summary><div class="dlg">${esc(w.q.p).replace(/\n/g,'<br>')}</div></details>`:''}
     <strong>${esc(w.q.q)}</strong>
-    <ul class="ropts">${w.q.o.map((o,k)=>`<li class="${k===w.q.a?'is-ok':(k===w.a?'is-ko':'')}">${esc(o)}${k===w.q.a?' <em>(correcta)</em>':''}${k===w.a&&k!==w.q.a?' <em>(tu respuesta)</em>':''}${k===w.a&&k===w.q.a?' <em>(tu respuesta)</em>':''}</li>`).join('')}</ul>
+    <ul class="ropts">${w.q.order.map(k=>[w.q.o[k],k]).map(([o,k])=>`<li class="${k===w.q.a?'is-ok':(k===w.a?'is-ko':'')}">${esc(o)}${k===w.q.a?' <em>(correcta)</em>':''}${k===w.a&&k!==w.q.a?' <em>(tu respuesta)</em>':''}${k===w.a&&k===w.q.a?' <em>(tu respuesta)</em>':''}</li>`).join('')}</ul>
     ${w.a===undefined?'<span class="bad">Sin responder</span><br>':''}
     <span class="ref">${esc(w.q.e)} (${esc(w.q.r)})</span></li>`;
   this.area.innerHTML=`<div class="qcard">
