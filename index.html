@@ -123,7 +123,16 @@ article.t a,.warn a,.setup a{color:var(--focus)}
 .feedback.ko{background:var(--stop-bg)}
 .feedback .r{display:block;color:var(--muted);font-size:13px;margin-top:6px}
 .score{font-size:clamp(48px,8vw,88px);font-weight:900;font-variation-settings:"wdth" 62;line-height:1;margin:6px 0}
-.review li{margin-bottom:12px}
+.review>li{margin-bottom:16px;padding-left:8px;border-left:4px solid var(--line)}
+.review>li.r-ok{border-left-color:var(--go)}
+.review>li.r-ko{border-left-color:var(--stop)}
+.review>li[hidden]{display:none}
+.ropts{list-style:none;padding:0;margin:6px 0;font-size:15px}
+.ropts li{padding:3px 8px;border-radius:5px;margin:2px 0}
+.ropts li.is-ok{background:var(--go-bg);font-weight:650}
+.ropts li.is-ko{background:var(--stop-bg);text-decoration:line-through}
+.ropts em{font-style:normal;font-size:13px;color:var(--muted);text-decoration:none;display:inline-block}
+.rdlg{font-size:14px;margin-bottom:6px}.rdlg summary{cursor:pointer;color:var(--muted)}
 .review .bad{color:var(--stop);font-weight:700}
 
 /* Flashcards */
@@ -948,15 +957,33 @@ Runner.prototype.finish=function(){
     breakdown=`<div class="tablewrap"><table><thead><tr><th>Parte</th><th>Aciertos</th><th>Nota</th><th>Mínimo 5</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="${all?'pass':'fail'}">${all?'Apto en las tres partes.':'No apto: en el examen las partes son eliminatorias.'}</p><p>Tiempo empleado: ${mins} min de 75.</p>`;
   }
-  const wrong=this.list.map((q,i)=>({q,a:this.answers[i]})).filter(x=>x.a!==x.q.a);
+  const all=this.list.map((q,i)=>({q,a:this.answers[i],ok:this.answers[i]===q.a}));
+  const nWrong=all.filter(x=>!x.ok).length;
+  const item=(w,i)=>`<li class="${w.ok?'r-ok':'r-ko'}" value="${i+1}">
+    ${w.q.p?`<details class="rdlg"><summary>Ver el diálogo</summary><div class="dlg">${esc(w.q.p).replace(/\n/g,'<br>')}</div></details>`:''}
+    <strong>${esc(w.q.q)}</strong>
+    <ul class="ropts">${w.q.o.map((o,k)=>`<li class="${k===w.q.a?'is-ok':(k===w.a?'is-ko':'')}">${esc(o)}${k===w.q.a?' <em>(correcta)</em>':''}${k===w.a&&k!==w.q.a?' <em>(tu respuesta)</em>':''}${k===w.a&&k===w.q.a?' <em>(tu respuesta)</em>':''}</li>`).join('')}</ul>
+    ${w.a===undefined?'<span class="bad">Sin responder</span><br>':''}
+    <span class="ref">${esc(w.q.e)} (${esc(w.q.r)})</span></li>`;
   this.area.innerHTML=`<div class="qcard">
     <div class="qmeta"><span>Resultado</span><span>${n} preguntas</span></div>
     <div class="score">${ok}/${n}</div>
     <p>${pct}% de aciertos. ${pct>=80?'Buen nivel: sigue repasando las cifras.':'Repasa la teoría de los temas en los que has fallado y vuelve a intentarlo.'}</p>
     ${breakdown}
-    ${wrong.length?`<h3>Para repasar</h3><ol class="review">${wrong.map(w=>`<li>${esc(w.q.q)}<br><span class="bad">${w.a===undefined?'Sin responder':'Tu respuesta: '+esc(w.q.o[w.a])}</span><br>Correcta: <strong>${esc(w.q.o[w.q.a])}</strong><br><span class="ref">${esc(w.q.e)} (${esc(w.q.r)})</span></li>`).join('')}</ol>`:'<p>Sin fallos. 👏</p>'}
+    <h3>Revisión del test</h3>
+    <div class="chips" role="group" aria-label="Filtrar la revisión">
+      <button class="chip" data-f="all" aria-pressed="true">Todas (${n})</button>
+      <button class="chip" data-f="ko" aria-pressed="false">Solo fallos (${nWrong})</button>
+      <button class="chip" data-f="ok" aria-pressed="false">Solo aciertos (${n-nWrong})</button>
+    </div>
+    <ol class="review" id="reviewList">${all.map(item).join('')}</ol>
     <div class="row-actions"><button class="btn" id="again">Repetir con preguntas nuevas</button></div>
   </div>`;
+  const rl=this.area.querySelector('#reviewList');
+  this.area.querySelectorAll('[data-f]').forEach(c=>c.addEventListener('click',()=>{
+    this.area.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===c?'true':'false'));
+    rl.querySelectorAll(':scope > li').forEach(li=>{const f=c.dataset.f;li.hidden=!(f==='all'||(f==='ok'&&li.classList.contains('r-ok'))||(f==='ko'&&li.classList.contains('r-ko')))});
+  }));
   this.area.querySelector('#again').addEventListener('click',()=>this.opts.onAgain&&this.opts.onAgain());
   this.area.querySelector('.qcard').scrollIntoView({block:'start'});
 };
