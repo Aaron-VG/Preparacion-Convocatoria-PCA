@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Estudio PCA/02/2026 — Personal de control de acceso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --ink:#18213F; --muted:#58607A; --line:#CBD2DD;
+  --badge:#F2C230; --badge-ink:#2A2100; --stop:#B9302A; --go:#1D6E43; --focus:#2F5BD3;
+  --stop-bg:#FBE9E7; --go-bg:#E4F3EA;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10162B; --surface:#18203B; --ink:#E7EBF5; --muted:#A2AAC2; --line:#2D3759;
+    --badge:#F2C230; --badge-ink:#2A2100; --stop:#FF7A6E; --go:#5BCB8C; --focus:#8FB0FF;
+    --stop-bg:#3A1F25; --go-bg:#173326;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10162B; --surface:#18203B; --ink:#E7EBF5; --muted:#A2AAC2; --line:#2D3759;
+  --badge:#F2C230; --badge-ink:#2A2100; --stop:#FF7A6E; --go:#5BCB8C; --focus:#8FB0FF;
+  --stop-bg:#3A1F25; --go-bg:#173326;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:17px;line-height:1.55;font-variation-settings:"wdth" 100}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.cond{font-variation-settings:"wdth" 70}
+
+/* Top bar */
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--ink);color:var(--bg)}
+.bar-in{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap}
+.tag{background:var(--badge);color:var(--badge-ink);font-weight:800;font-variation-settings:"wdth" 75;
+  padding:4px 10px;border-radius:3px;font-size:15px;letter-spacing:.01em;white-space:nowrap}
+.bar h1{font-size:16px;margin:0;font-weight:600;flex:1;min-width:160px}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;max-width:100%}
+nav.tabs button{background:transparent;color:inherit;border:0;font:inherit;font-size:15px;padding:8px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;opacity:.8}
+nav.tabs button[aria-selected="true"]{background:var(--bg);color:var(--ink);opacity:1;font-weight:700}
+.themebtn{background:transparent;border:1px solid rgba(255,255,255,.35);color:inherit;border-radius:6px;padding:6px 10px;font:inherit;font-size:14px;cursor:pointer}
+
+main{max-width:1180px;margin:0 auto;padding:24px 20px 80px}
+section.panel{display:none}
+section.panel.on{display:block}
+
+/* Hero calculator */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:start;margin-bottom:36px}
+.hero h2{font-size:clamp(34px,5.5vw,62px);line-height:.98;margin:0 0 14px;font-weight:900;font-variation-settings:"wdth" 68;letter-spacing:-.01em}
+.hero p.lead{color:var(--muted);max-width:56ch;margin:0 0 18px}
+.counter{background:var(--badge);color:var(--badge-ink);border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.counter label{font-weight:700;font-size:15px}
+.counter input[type=number]{width:100%;font:inherit;font-size:clamp(48px,9vw,96px);font-weight:900;font-variation-settings:"wdth" 62;
+  background:transparent;border:0;border-bottom:4px solid var(--badge-ink);color:var(--badge-ink);padding:0 0 4px;line-height:1}
+.counter select{font:inherit;font-size:16px;padding:8px;border-radius:6px;border:2px solid var(--badge-ink);background:#FFF7D6;color:var(--badge-ink)}
+.results{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.results .row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:12px 16px;border-top:1px solid var(--line);align-items:baseline}
+.results .row:first-child{border-top:0}
+.results .k{font-size:15px}
+.results .k small{display:block;color:var(--muted);font-size:13px}
+.results .v{font-weight:800;font-variation-settings:"wdth" 75;font-size:20px;text-align:right}
+.v.no{color:var(--muted);font-weight:600}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+
+/* Theory */
+.theory{display:grid;grid-template-columns:240px minmax(0,1fr);gap:36px}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);align-self:start;font-size:15px}
+.toc ol{list-style:none;padding:0;margin:0;counter-reset:t}
+.toc li{counter-increment:t}
+.toc a{display:block;padding:5px 0 5px 10px;text-decoration:none;color:var(--muted);border-left:2px solid var(--line)}
+.toc a:hover{color:var(--ink);border-left-color:var(--ink)}
+.toc a::before{content:counter(t) ". ";}
+article.t{max-width:72ch}
+article.t h2{font-size:30px;line-height:1.1;font-variation-settings:"wdth" 72;font-weight:850;margin:44px 0 10px}
+article.t h2:first-child{margin-top:0}
+article.t h3{font-size:19px;margin:24px 0 6px}
+article.t p,article.t li{margin:0 0 10px}
+.ref{color:var(--muted);font-size:14px}
+.tablewrap{overflow-x:auto;margin:10px 0 16px}
+table{border-collapse:collapse;width:100%;font-size:15px;background:var(--surface)}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--bg);font-weight:700}
+.trap{border-left:5px solid var(--badge);background:var(--surface);padding:12px 16px;margin:14px 0;border-radius:0 8px 8px 0}
+.trap strong{display:block;margin-bottom:4px}
+article.t a,.warn a,.setup a{color:var(--focus)}
+.dlg{margin:0 0 14px;padding:12px 14px;border-left:4px solid var(--badge);background:var(--bg);border-radius:0 8px 8px 0;font-size:15px;line-height:1.5}
+.timer{font-variant-numeric:tabular-nums;font-weight:700}
+.timer.late{color:var(--stop)}
+.pass{color:var(--go);font-weight:800}.fail{color:var(--stop);font-weight:800}
+.warn{border:1px dashed var(--line);padding:10px 14px;border-radius:8px;color:var(--muted);font-size:14px;background:var(--surface)}
+
+/* Quiz */
+.setup{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+.chip{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:8px;padding:11px 18px;cursor:pointer;background:var(--ink);color:var(--bg)}
+.btn.alt{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.qcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;max-width:780px}
+.qmeta{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+.progress{height:6px;background:var(--line);border-radius:6px;margin-bottom:16px;overflow:hidden}
+.progress span{display:block;height:100%;background:var(--badge)}
+.qtext{font-size:20px;font-weight:650;margin:0 0 16px;line-height:1.35}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;font:inherit;font-size:16px;background:var(--bg);color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:12px 14px;cursor:pointer}
+.opt b{min-width:22px}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.ok{background:var(--go-bg);border-color:var(--go)}
+.opt.ko{background:var(--stop-bg);border-color:var(--stop)}
+.opt:disabled{cursor:default}
+.feedback{margin-top:14px;padding:12px 14px;border-radius:8px;font-size:15px}
+.feedback.ok{background:var(--go-bg)}
+.feedback.ko{background:var(--stop-bg)}
+.feedback .r{display:block;color:var(--muted);font-size:13px;margin-top:6px}
+.score{font-size:clamp(48px,8vw,88px);font-weight:900;font-variation-settings:"wdth" 62;line-height:1;margin:6px 0}
+.review li{margin-bottom:12px}
+.review .bad{color:var(--stop);font-weight:700}
+
+/* Flashcards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-height:130px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+.card .f{font-weight:650}
+.card .b{display:none;font-size:15px}
+.card[aria-expanded="true"]{background:var(--ink);color:var(--bg)}
+.card[aria-expanded="true"] .b{display:block}
+.card .hint{font-size:12px;color:var(--muted)}
+.card[aria-expanded="true"] .hint{color:inherit;opacity:.6}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr}
+  .theory{grid-template-columns:1fr}
+  .toc{position:static}
+  .bar h1{display:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  .progress span{transition:width .25s ease}
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-in">
+    <span class="tag">Personal de control de acceso</span>
+    <h1>Preparación convocatoria PCA/02/2026</h1>
+    <nav class="tabs" role="tablist" aria-label="Secciones">
+      <button role="tab" data-tab="inicio" aria-selected="true">Inicio</button>
+      <button role="tab" data-tab="teoria" aria-selected="false">Teoría</button>
+      <button role="tab" data-tab="test" aria-selected="false">Test por temas</button>
+      <button role="tab" data-tab="simulacro" aria-selected="false">Simulacro</button>
+      <button role="tab" data-tab="fichas" aria-selected="false">Fichas</button>
+    </nav>
+    <button class="themebtn" id="themeBtn" aria-label="Cambiar tema claro u oscuro">Tema</button>
+  </div>
+</header>
+
+<main>
+<!-- ============ INICIO ============ -->
+<section class="panel on" id="p-inicio" role="tabpanel">
+  <div class="hero">
+    <div>
+      <h2>Todo empieza por el aforo.</h2>
+      <p class="lead">Medio examen depende de cifras que cambian según cuánta gente cabe en el local. Escribe un aforo y mira qué exige el Reglamento (Decret 112/2010). Luego pasa a la teoría, a los tests por temas y al simulacro.</p>
+      <div class="warn"><strong>Sábado 21 de noviembre de 2026</strong> (fecha prevista), Institut de Seguretat Pública de Catalunya, Mollet del Vallès. Son 40 preguntas tipo test en 1 h 15 min: 20 de conocimientos, 10 prácticas y 10 de diálogo (5 en catalán y 5 en castellano). Hace falta un 5 sobre 10 en cada parte y son eliminatorias. Después hay un test psicotécnico (apto o no apto). <a href="#t0" data-goto="t0">Ver el detalle y las fuentes</a>.</div>
+    </div>
+    <div>
+      <div class="counter">
+        <label for="aforo">Aforo autorizado (personas)</label>
+        <input type="number" id="aforo" min="1" max="100000" value="600" inputmode="numeric">
+        <label for="tipo">Tipo de establecimiento o actividad</label>
+        <select id="tipo">
+          <option value="musical">Local musical (discoteca, bar musical, sala de fiestas o conciertos)</option>
+          <option value="especial">Establecimiento de régimen especial</option>
+          <option value="extra_cerrado">Musical extraordinario en recinto cerrado y cubierto</option>
+          <option value="extra_aire">Musical extraordinario al aire libre</option>
+          <option value="otros">Otro establecimiento no musical</option>
+        </select>
+      </div>
+      <div class="results" id="calcOut" aria-live="polite"></div>
+      <p class="note">Herramienta de repaso. Para más de 1.000 personas se aplica «uno más por cada 1.000»; ante la duda, manda el texto del artículo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TEORÍA ============ -->
+<section class="panel" id="p-teoria" role="tabpanel">
+<div class="theory">
+<aside class="toc" aria-label="Índice de teoría">
+  <ol>
+    <li><a href="#t0">El examen</a></li>
+    <li><a href="#t1">Marco normativo</a></li>
+    <li><a href="#t2">Derechos y obligaciones</a></li>
+    <li><a href="#t3">Derecho de admisión</a></li>
+    <li><a href="#t4">Menores, alcohol y tabaco</a></li>
+    <li><a href="#t5">El personal de control de acceso</a></li>
+    <li><a href="#t6">Habilitación, carnet y revocación</a></li>
+    <li><a href="#t7">Seguridad, vigilantes y salud</a></li>
+    <li><a href="#t8">Control del aforo</a></li>
+    <li><a href="#t9">Horarios y cierre</a></li>
+    <li><a href="#t13">Hojas de reclamación</a></li>
+    <li><a href="#t14">Armas y objetos peligrosos</a></li>
+    <li><a href="#t10">Infracciones y sanciones</a></li>
+    <li><a href="#t11">Módulo práctico</a></li>
+    <li><a href="#t12">Cifras que caen</a></li>
+    <li><a href="#t15">Fuentes y exámenes anteriores</a></li>
+  </ol>
+</aside>
+<article class="t">
+
+<h2 id="t0">El examen</h2>
+<p>Convocatoria <strong>PCA/02/2026</strong>, Resolució ISP/3096/2026, de 31 de agosto (DOGC 9746, de 7.9.2026). La prueba está prevista para el sábado 21 de noviembre de 2026 en el Institut de Seguretat Pública de Catalunya (Mollet del Vallès). La fecha, hora y aula definitivas salen con la lista definitiva de personas admitidas.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Parte</th><th>Preguntas</th><th>Nota</th></tr></thead>
+<tbody>
+<tr><td>1. Módulo de conocimientos</td><td>20 tipo test</td><td>0 a 10, mínimo 5</td></tr>
+<tr><td>2. Módulo práctico</td><td>10 tipo test</td><td>0 a 10, mínimo 5</td></tr>
+<tr><td>3. Diálogo básico escrito</td><td>10 tipo test (5 en catalán, 5 en castellano)</td><td>0 a 10, mínimo 5</td></tr>
+<tr><td>Test psicotécnico</td><td>Aparte, hasta 1 h 15 min</td><td>Apto o no apto</td></tr>
+</tbody></table></div>
+<p>Las tres partes se hacen seguidas, en un máximo de <strong>1 hora y 15 minutos</strong>, y son <strong>eliminatorias</strong>: si suspendes una, no se corrige la siguiente. El psicotécnico solo cuenta para quien supera la prueba de selección.</p>
+<h3>Temario oficial (anexo de la convocatoria)</h3>
+<ol>
+  <li>Normativa y funciones del personal de control de acceso según el Reglamento. <a href="#t5">Ver</a></li>
+  <li>Igualdad, no discriminación y derecho de admisión. <a href="#t3">Ver</a></li>
+  <li>Medidas de seguridad: planes de seguridad y autoprotección, incendios, evacuación, asistencia sanitaria. <a href="#t7">Ver</a></li>
+  <li>Hojas de reclamación. <a href="#t13">Ver</a></li>
+  <li>Horarios de cierre. <a href="#t9">Ver</a></li>
+  <li>Menores, tabaco y alcohol, discotecas de juventud. <a href="#t4">Ver</a></li>
+  <li>Armas y objetos peligrosos. <a href="#t14">Ver</a></li>
+</ol>
+<p>Módulo práctico: primeros auxilios; actuación ante situaciones de peligro y trato con el público; embriaguez e intoxicaciones; autocontrol y defensa personal. <a href="#t11">Ver</a></p>
+<div class="trap"><strong>Lo que no he podido confirmar</strong>La web de la Generalitat no deja leer las bases de forma automática, así que la estructura de arriba viene de academias que resumen la convocatoria y coincide con la de convocatorias anteriores. Ninguna menciona si los errores restan: léelo en la base 6 de la resolución y, si no restan, no dejes ninguna en blanco.</div>
+<p class="ref">Referencias: <a href="https://dogc.gencat.cat/ca/document-del-dogc/?documentId=1053738">Resolució ISP/3096/2026 (DOGC)</a>; <a href="https://tramits.gencat.cat/es/tramits/tramits-temes/23264_-_Proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces.-Convocatoria-PCA-02-2026">trámite en Gencat</a>; <a href="https://interior.gencat.cat/ca/arees_dactuacio/espectacles/carnet_professional_per_a_controladors_dacces/proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces/">página de Interior sobre las pruebas</a>; <a href="https://interior.gencat.cat/es/arees_dactuacio/espectacles/carnet_professional_per_a_controladors_dacces/models-dexamen-i-de-respostes-de-les-proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces/">modelos de examen de convocatorias anteriores</a>.</p>
+
+<h2 id="t1">Marco normativo</h2>
+<p>La <strong>Ley 11/2009, de 6 de julio</strong>, de regulación administrativa de los espectáculos públicos y las actividades recreativas (DOGC 5419, 13.7.2009) es la ley catalana de referencia. La desarrolla el <strong>Decreto 112/2010, de 31 de agosto</strong>, que aprueba el Reglamento de espectáculos públicos y actividades recreativas (DOGC 5709, 7.9.2010), con una corrección de erratas publicada en el DOGC 5786, de 30.12.2010.</p>
+<p>La Ley se ha modificado tres veces: <strong>Ley 10/2011</strong> (entre otras cosas, rebajó las multas), <strong>Ley 5/2017</strong> (definiciones, ámbito, venta de entradas y formación obligatoria del personal de control de acceso) y <strong>Ley 5/2020</strong> (libertad sexual y no discriminación). Estudia siempre el texto consolidado.</p>
+<h3>Principios</h3>
+<p>Los tres clásicos son <strong>convivencia, seguridad y calidad</strong>. Desde 2020 el artículo 2.2 añade la no discriminación, el respeto a la dignidad de mujeres y hombres, la libertad e indemnidad sexuales y la no transmisión de estereotipos sexistas.</p>
+<h3>A qué se aplica</h3>
+<p>A todo espectáculo público, actividad recreativa y establecimiento abierto al público, sea público o privado quien lo organiza, tenga o no ánimo de lucro y sea esporádico o habitual.</p>
+<h3>Qué queda fuera o tiene norma propia</h3>
+<ul>
+  <li>Excluidos por la Ley (art. 4.5): los actos privados o familiares sin riesgo que no se hacen en establecimientos abiertos al público; las actividades en ejercicio de los derechos de <strong>reunión y manifestación</strong>; los actos vecinales o asociativos de aforo bajo o medio sin riesgo grave; y las manifestaciones del Catálogo del patrimonio festivo de Cataluña (estos dos últimos, según ordenanzas municipales).</li>
+  <li>Según el Reglamento (art. 2): la restauración, el deporte, el juego y las apuestas y los espectáculos con animales se rigen por su normativa específica y el Reglamento se les aplica de forma <strong>supletoria</strong>. Las actuaciones con fuego y pirotecnia quedan excluidas.</li>
+  <li>Si la Ley choca con una ley sectorial, prevalece la sectorial (art. 4.6).</li>
+</ul>
+<h3>Definiciones que conviene saber</h3>
+<p><strong>Titulares</strong>: quienes tienen la titularidad del establecimiento (propietarios, arrendatarios u otro título). Son también organizadores de lo que se hace en su local, salvo que se disponga otra cosa. <strong>Organizadores</strong>: quienes promueven y organizan el espectáculo o la actividad. <strong>Espacios abiertos al público</strong>: lugares de dominio público o privados donde ocasionalmente se hacen espectáculos sin infraestructuras fijas.</p>
+<p>El <strong>catálogo</strong> de espectáculos, actividades y establecimientos lo aprueba el Govern por decreto; está en el anexo I del Reglamento.</p>
+<p>El artículo 24.2 de la Ley exige que el personal de control de acceso asista a cursos en un <strong>centro de formación habilitado</strong> y supere las <strong>pruebas de selección</strong> que convoca la dirección general competente.</p>
+<p class="ref">Referencias: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 1 a 4 y 24 (texto consolidado, BOE)</a>; <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 1 a 3</a>.</p>
+
+<h2 id="t2">Derechos y obligaciones</h2>
+<h3>Del público (art. 5 de la Ley)</h3>
+<p>Derechos clave: ser admitido <strong>en las mismas condiciones objetivas que el resto</strong>, siempre que el aforo lo permita y no haya causa de exclusión; recibir un trato respetuoso y no discriminatorio; disponer de <strong>hojas de reclamación</strong>; recibir la devolución del importe si el espectáculo se suspende o cambia esencialmente.</p>
+<p>Obligaciones clave: seguir las instrucciones de los empleados y del personal de vigilancia y seguridad (dentro, en la entrada y en la salida); comportarse cívicamente; <strong>no llevar armas ni objetos que puedan usarse con fines violentos</strong>; cumplir las normas de acceso y admisión; respetar las normas sobre tabaco, alcohol y edad mínima; no exhibir símbolos o indumentaria que inciten a la violencia, el racismo, la homofobia o la xenofobia.</p>
+<p>Desde la Ley 5/2020, el público tiene derecho a disfrutar de su <strong>libertad e indemnidad sexuales</strong> (art. 5.1.d) y la obligación de no cometer ni incitar actos que atenten contra ellas ni discriminar (art. 5.2.d). Hacerlo es falta grave si no llega a ser delito.</p>
+<h3>De titulares y organizadores (art. 6)</h3>
+<p>Entre otras: permitir la entrada salvo los casos previstos (como el derecho de admisión), respetar el aforo, cumplir los horarios, tener hojas de reclamación, contratar el seguro de responsabilidad civil, facilitar el acceso a agentes de la autoridad e inspectores y, muy importante para ti, <strong>informar al personal de control de acceso y de vigilancia de sus funciones, obligaciones y de las responsabilidades personales</strong> que puede generar incumplirlas (art. 6.2.p).</p>
+<p class="ref">Referencias: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 5, 6, 9 y 48.s</a>.</p>
+
+<h2 id="t3">Derecho de admisión</h2>
+<p>Es la facultad del titular u organizador de <strong>determinar las condiciones de acceso</strong>, dentro de los límites de la Ley y el Reglamento.</p>
+<p><strong>Nunca puede discriminar</strong> por nacimiento, raza, sexo, religión, opinión, discapacidad, orientación sexual, identidad de género o cualquier otra condición personal o social, ni para entrar ni para permanecer ni para usar los servicios. Vulnerar esta prohibición es <strong>falta muy grave</strong>.</p>
+<h3>Cómo deben ser las condiciones de acceso</h3>
+<p>Concretas y objetivas; nunca arbitrarias, improcedentes ni discriminatorias, ni contrarias a las costumbres sociales. Deben constar en un <strong>rótulo o placa</strong> (anexo IV) colocado en un lugar visible de la zona de acceso. El titular envía una copia al <strong>servicio territorial</strong> competente en espectáculos, que puede exigir que se modifique. La hoja con las condiciones debe estar <strong>sellada por la Administración</strong> y permanecer en el establecimiento. Cualquier cambio sigue el mismo procedimiento. Ejercer el derecho de admisión sin haberlo comunicado es <strong>falta leve</strong>.</p>
+<p>Mediante el derecho de admisión también se puede prohibir entrar con comida o bebida comprada fuera (art. 49.2).</p>
+<h3>Limitaciones generales: a quién hay que impedir la entrada</h3>
+<p>Aquí no se elige: el titular, el organizador o sus responsables <strong>están obligados</strong> a impedir el acceso a:</p>
+<ul>
+  <li>Quien quiera entrar cuando ya se ha superado el aforo máximo autorizado.</li>
+  <li>Quien muestre actitudes violentas, se comporte de forma agresiva o provoque altercados fuera o en la entrada, incite al odio o la discriminación, lleve armas u objetos utilizables como tales, o lleve ropa, objetos o símbolos que inciten a la violencia o hagan apología de actividades contrarias a los derechos fundamentales.</li>
+  <li>Quien muestre síntomas de embriaguez, esté consumiendo drogas o muestre síntomas de haberlas consumido.</li>
+  <li>Quien no tenga la edad mínima exigida.</li>
+</ul>
+<p>Si alguien en esas condiciones ya está dentro, hay que <strong>expulsarlo</strong>, y para ello se puede pedir la asistencia de la policía de Cataluña.</p>
+<p>En los locales obligados a tener personal de control de acceso, <strong>ese personal es el responsable del ejercicio del derecho de admisión</strong>, sin perjuicio de la responsabilidad del titular u organizador. Quien considere que se le ha aplicado mal puede denunciar ante la administración competente para sancionar o acudir a la vía judicial.</p>
+<p class="ref">Referencias: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 10, 47.i y 49.1.d</a>; <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 49.2 y 50 a 55, y anexo IV</a>.</p>
+<div class="trap"><strong>Pregunta trampa</strong>Un rótulo genérico tipo «Reservado el derecho de admisión» no basta: las condiciones deben ser concretas y objetivas, y estar comunicadas y selladas.</div>
+
+<h2 id="t4">Menores, alcohol y tabaco</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Edad</th><th>Prohibida la entrada en</th></tr></thead>
+<tbody>
+<tr><td>Menores de 18</td><td>Juegos y apuestas (según su normativa); establecimientos con actividades de naturaleza sexual; establecimientos de régimen especial.</td></tr>
+<tr><td>Menores de 16</td><td>Discotecas, salas de fiesta, salas de baile, bares musicales, salas de conciertos, cafés concierto y cafés teatro, salvo actuaciones en directo acompañados de progenitores o tutores; al terminar la actuación no pueden quedarse.</td></tr>
+<tr><td>Menores de 14</td><td>Discotecas de juventud.</td></tr>
+</tbody></table></div>
+<p>Quedan fuera de estas prohibiciones los restaurantes musicales, las salas de fiestas con espectáculo y los conciertos de infancia y juventud. Donde sí pueden entrar menores se aplican las normas de protección de la salud, la prohibición de máquinas con premio o de azar, los límites horarios y la protección de la infancia.</p>
+<p>La edad se comprueba <strong>con la exhibición de documentos oficiales de identidad</strong>. Admitir menores donde está prohibido es falta grave; hacerlo de manera reiterada, muy grave.</p>
+<h3>Discotecas de juventud</h3>
+<p>Son para jóvenes de 14 a 17 años. Horario: de 17.00 a 22.00 h. No se puede vender ni servir alcohol ni tabaco.</p>
+<h3>Alcohol</h3>
+<p>En Cataluña está prohibido <strong>vender o suministrar cualquier bebida alcohólica a menores de 18 años</strong>, tanto en los establecimientos de venta y consumo como en otros lugares públicos. Los locales deben tener un <strong>cartel bien visible</strong> que recuerde la prohibición.</p>
+<h3>Tabaco</h3>
+<p>Está prohibido vender o entregar productos del tabaco a <strong>menores de 18 años</strong> (ley estatal 28/2005). Tampoco se puede fumar en el interior de bares, discotecas y demás locales de ocio cerrados.</p>
+<p>Además, la Ley 11/2009 (art. 9.2) recuerda que donde entran menores no se les puede vender ni suministrar alcohol, tabaco ni drogas, ni dejarles usar máquinas con premio o de azar, y prohíbe la publicidad que incite a beber, sobre todo con barras libres o consumo sin control (art. 22.2.b).</p>
+<p class="ref">Referencias: <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 41.6, 53 y 60.1.c</a>; <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 9, 22, 47.g y 48.m</a>; <a href="https://www.sanidad.gob.es/ca/alcoholJovenes/docs/autonomica/Ley1_2002_CAT.pdf">Ley 20/1985, art. 17, redactado por la Ley 1/2002</a>; <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2005-21261">Ley 28/2005, arts. 3 y 7</a>; <a href="https://noticias.juridicas.com/base_datos/CCAA/ca-o358-2011-int.html">Orden INT/358/2011, art. 4</a>.</p>
+
+<h2 id="t5">El personal de control de acceso</h2>
+<h3>Qué es</h3>
+<p>La persona que ejerce las funciones de <strong>admisión y control de acceso del público al interior</strong> de determinados establecimientos o espacios abiertos al público, bajo la <strong>dependencia contractual del titular u organizador</strong>. Esa dependencia dura todo el espectáculo o actividad, tanto si te contratan directamente como si vienes de una empresa proveedora.</p>
+<h3>Dónde es obligatorio</h3>
+<ul>
+  <li>Establecimientos con espectáculos musicales, <strong>a partir de 150</strong> personas de aforo autorizado.</li>
+  <li>Establecimientos con actividades recreativas musicales, a partir de 150.</li>
+  <li>Espectáculos y actividades musicales de carácter extraordinario, a partir de 150.</li>
+  <li>Establecimientos de <strong>régimen especial, con cualquier aforo</strong>.</li>
+</ul>
+<h3>Cuántos (para los tres primeros casos)</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Aforo máximo autorizado</th><th>Personal mínimo</th></tr></thead>
+<tbody>
+<tr><td>150 a 500</td><td>2</td></tr>
+<tr><td>501 a 1.000</td><td>3</td></tr>
+<tr><td>A partir de 1.001</td><td>4, y 1 más por cada 1.000</td></tr>
+</tbody></table></div>
+<h3>Identificación</h3>
+<p>Distintivo visible con la leyenda «Personal de control de acceso» y los datos de la habilitación. En una inspección, <strong>debes mostrar el carnet cuando te lo pidan</strong>.</p>
+<h3>Funciones (art. 60)</h3>
+<ol>
+  <li>No dejar entrar a quien no cumpla las condiciones fijadas por el titular en ejercicio del derecho de admisión.</li>
+  <li>Impedir la entrada a quien esté en un supuesto de limitación general de acceso.</li>
+  <li>Hacer cumplir las limitaciones de entrada de menores, comprobando la edad con documentos oficiales de identidad.</li>
+  <li>Controlar que nunca se supere el aforo máximo autorizado y, en consecuencia, no dejar entrar a más público.</li>
+  <li>Prohibir el acceso a partir de la hora límite de cierre o, en su caso, una vez empezado el espectáculo.</li>
+  <li>Informar <strong>inmediatamente a los vigilantes de seguridad privada</strong> de las alteraciones del orden en los accesos (sin perjuicio de actuar si la urgencia lo exige para proteger la integridad física de personas y bienes). Si no hay vigilantes, informar directamente a la <strong>policía de Cataluña</strong>.</li>
+  <li>En caso necesario, auxiliar a quien necesite asistencia sanitaria y llamar al teléfono de emergencias.</li>
+  <li>Permitir y facilitar las inspecciones y controles reglamentarios.</li>
+</ol>
+<div class="trap"><strong>Límite que siempre preguntan</strong>El personal de control de acceso <strong>en ningún caso</strong> puede asumir ni ejercer las funciones propias de los vigilantes de seguridad privada (arts. 44.3 y 60.2).</div>
+<p class="ref">Referencias: <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 44.3 y 56 a 60</a>.</p>
+
+<h2 id="t6">Habilitación, carnet y revocación</h2>
+<h3>Requisitos para presentarse (art. 61)</h3>
+<ul>
+  <li>Ser mayor de edad.</li>
+  <li>Tener nacionalidad española o de un país de la UE, o permiso de residencia y trabajo.</li>
+  <li>No haber sido condenado por delitos <strong>contra las personas, el patrimonio o la salud pública</strong>, o acreditar que esos antecedentes están cancelados.</li>
+  <li>Tener conocimientos mínimos de las <strong>dos lenguas oficiales</strong> de Cataluña, para atender al público en cualquiera de ellas.</li>
+  <li>Haber hecho el curso en un centro de formación habilitado.</li>
+</ul>
+<h3>Curso y pruebas</h3>
+<p>El curso dura <strong>60 horas</strong>: módulo de conocimientos de <strong>35 h</strong> y módulo práctico de <strong>25 h</strong>. Para inscribirse a la prueba se aporta copia del documento de identidad (o pasaporte o permiso), certificado de antecedentes penales, dos fotografías tamaño carnet y certificado del centro que acredite asistencia a <strong>al menos el 90%</strong> del curso. Las pruebas las convoca la dirección general competente (hoy, la Direcció General d'Administració de Seguretat) <strong>dos veces al año</strong>, e incluyen la prueba de selección y un test psicotécnico.</p>
+<h3>Carnet y distintivo</h3>
+<p>Los entrega la dirección general a quienes superan las pruebas. Contienen como mínimo fotografía, nombre y apellidos, número de carnet, fecha de expedición y de caducidad. Tienen una vigencia de <strong>4 años</strong>. Con el carnet caducado no puedes trabajar como PCA ni ser contratado hasta renovarlo.</p>
+<h3>Renovación</h3>
+<p>Se pide con una antelación mínima de <strong>2 meses</strong> antes de la caducidad, aportando certificado de antecedentes penales, dos fotografías actuales y datos personales actualizados. La dirección general debe renovarlo en un plazo máximo de <strong>2 meses</strong>.</p>
+<h3>Revocación (art. 65)</h3>
+<p>Previa audiencia, la dirección general debe revocar la habilitación si:</p>
+<ul>
+  <li>Han pasado <strong>más de un año</strong> desde la caducidad sin pedir la renovación.</li>
+  <li>Hay condena por delitos contra las personas, el patrimonio o la salud pública.</li>
+  <li>Hay sanción firme por <strong>dos o más faltas graves o muy graves en un año</strong>, relacionadas con tus funciones.</li>
+</ul>
+<p>Tras la notificación hay que entregar carnet y distintivo en <strong>10 días hábiles</strong>. Contra la revocación cabe <strong>recurso de alzada</strong> ante el titular del departamento. Para volver: en el caso de condena, cuando se cancelen los antecedentes; en los otros dos casos, pasado <strong>un año</strong> desde la revocación.</p>
+<p class="ref">Referencias: <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 61 a 65 y anexo V</a>; <a href="https://interior.gencat.cat/es/arees_dactuacio/espectacles/carnet_professional_per_a_controladors_dacces/moduls_de_formacio_per_a_personal_de_control_d_acces/index.html">módulos de formación (Interior)</a>; <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 24.2 y 51.h</a>.</p>
+
+<h2 id="t7">Seguridad, vigilantes y salud</h2>
+<h3>Vigilantes de seguridad privada (art. 43)</h3>
+<p>En actividades y espectáculos musicales (incluidos los extraordinarios), durante todo el horario: <strong>1 vigilante a partir de 501</strong> personas, <strong>2 a partir de 1.001</strong> y uno más por cada 1.000. En locales con actividades de naturaleza sexual: al menos 1 vigilante, otro más a partir de 50 de aforo y otro por cada fracción de 50. Se contratan con una empresa de seguridad inscrita y autorizada. Los servicios territoriales pueden reducir, eximir o aumentar el número según las circunstancias.</p>
+<h3>Memoria de seguridad</h3>
+<p>Obligatoria en actividades recreativas musicales con aforo <strong>superior a 150</strong> y en establecimientos de régimen especial con cualquier aforo. Evalúa riesgos, fija protocolos para los vigilantes, comunicación con la policía y asistencia sanitaria.</p>
+<h3>Conductas incívicas fuera del local (art. 45)</h3>
+<p>El titular y su personal deben <strong>impedir que el público salga con bebidas</strong> y avisar a la policía de cualquier indicio de conducta incívica en el exterior y alrededores. El control de entrada no debe ocupar la vía pública de forma que las colas molesten al tráfico o a los peatones (art. 38).</p>
+<h3>Asistencia sanitaria (art. 48)</h3>
+<p>Enfermería en espectáculos y actividades musicales <strong>a partir de 1.000</strong> personas y en régimen especial con cualquier aforo (puede sustituirse por botiquín más vehículos medicalizados). El resto: botiquín.</p>
+<h3>Otros datos</h3>
+<p>Si en el interior se pueden superar los <strong>90 dB(A)</strong>, debe haber un letrero de aviso en la entrada. Plan de autoprotección: obligatorio según aforo (por ejemplo, establecimientos de 2.000 o más con el plan del catálogo de autoprotección; entre 500 y 2.000 con contenido mínimo). Las vías de evacuación deben estar siempre libres de obstáculos y las puertas de evacuación deben poder abrirse fácilmente en el sentido de la evacuación.</p>
+<p class="ref">Referencias: <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 34, 37, 38 y 42 a 48</a>; <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 6.2.i, 23 y 25</a>.</p>
+
+<h2 id="t8">Control del aforo</h2>
+<p>Todo establecimiento tiene un <strong>aforo máximo autorizado</strong>, que se informa con carteles visibles <strong>en todas las entradas</strong>. El titular designa un <strong>responsable del control de aforo</strong>, que evita que se supere y debe poder informar en todo momento a la policía de cuántas personas hay dentro. Fuera de los casos de sistema automático, el aforo se controla por observación visual.</p>
+<h3>Sistema automático de control de aforo obligatorio en</h3>
+<ul>
+  <li>Locales de espectáculos o actividades musicales <strong>a partir de 151</strong>.</li>
+  <li>Musicales extraordinarios en recinto cerrado y cubierto, a partir de 151.</li>
+  <li>Musicales extraordinarios al aire libre, <strong>a partir de 1.000</strong>.</li>
+  <li>Régimen especial, con cualquier aforo.</li>
+</ul>
+<p>A partir de 151 se graban en vídeo todas las entradas y salidas, con día y hora, desde la apertura hasta el cierre; las imágenes se guardan <strong>3 meses</strong>. A partir de <strong>501</strong>, además, los sistemas del anexo III. Los agentes pueden conectar su propio dispositivo al sistema de conteo.</p>
+<div class="trap"><strong>150 o 151</strong>Personal de control de acceso: <em>a partir de 150</em>. Sistema automático de aforo y grabación: <em>a partir de 151</em>. Memoria de seguridad: <em>más de 150</em>.</div>
+<p>Superar el aforo es <strong>muy grave si hay riesgo</strong> para la seguridad de las personas y <strong>grave si no lo hay</strong>.</p>
+<p class="ref">Referencias: <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 66 a 69 y anexo III</a>; <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 47.c y 48.f</a>.</p>
+
+<h2 id="t9">Horarios y cierre</h2>
+<p>Los horarios generales los fija una orden del consejero competente: hoy, la <strong>Orden INT/358/2011, de 19 de diciembre</strong>. La «prolongación» se aplica las noches de viernes a sábado, de sábado a domingo y las vísperas de festivo.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Actividad</th><th>Abre</th><th>Cierra como máximo</th><th>Prolongación</th></tr></thead>
+<tbody>
+<tr><td>Bar musical</td><td>12.00</td><td>2.30</td><td>+30 min</td></tr>
+<tr><td>Restaurante musical</td><td>6.00</td><td>2.30</td><td>+30 min</td></tr>
+<tr><td>Discoteca, sala de baile, sala de fiestas con espectáculo</td><td>17.00</td><td>5.00</td><td>+60 min</td></tr>
+<tr><td>Sala de conciertos, café teatro, café concierto</td><td>17.00</td><td>4.30</td><td>+30 min</td></tr>
+<tr><td>Discoteca de juventud</td><td>17.00</td><td>22.00</td><td>No</td></tr>
+<tr><td>Sala de fiestas con espectáculo para menores y conciertos de infancia y juventud</td><td>11.00</td><td>19.00</td><td>No</td></tr>
+<tr><td>Establecimientos con actividades de naturaleza sexual</td><td>17.00</td><td>4.00</td><td>+60 min</td></tr>
+<tr><td>Establecimientos de régimen especial</td><td>7.00</td><td>14.00</td><td>No</td></tr>
+<tr><td>Bar, restaurante, salón de banquetes</td><td>6.00</td><td>2.30</td><td>+30 min</td></tr>
+<tr><td>Espectáculos (cine, teatro, música, circo…)</td><td>6.00</td><td>1.30</td><td>+60 min</td></tr>
+</tbody></table></div>
+<h3>Ampliaciones</h3>
+<ul>
+  <li><strong>Nochevieja</strong>: discotecas, salas de baile y salas de fiestas, 90 minutos más; el resto, 60 minutos más.</li>
+  <li><strong>Semana Santa, Carnaval, Navidad (21 de diciembre a 6 de enero), verano (1 de junio a 15 de septiembre) y fiestas locales</strong>: discotecas, salas de baile y salas de fiestas, 45 minutos más; bares y restaurantes (musicales o no) y salas de conciertos, 30 minutos más. Se suman al horario general.</li>
+  <li>La dirección general puede autorizar prolongaciones extraordinarias a petición del titular, con informe vinculante del ayuntamiento.</li>
+  <li>El <strong>alcalde</strong> puede <strong>reducir el horario hasta 2 horas</strong> en locales o zonas concretas por molestias vecinales o seguridad.</li>
+</ul>
+<h3>Qué pasa a la hora de cierre</h3>
+<p>No entra nadie más, no se sirve ninguna consumición, para la música, cesan las actividades, se enciende todo el alumbrado interior y se informa al público de que dispone de <strong>30 minutos</strong> para salir si el aforo es de hasta 500 personas, o <strong>45 minutos</strong> si es de más de 500. Pasado ese tiempo, el personal pide que salga quien quede.</p>
+<p>El horario debe constar en un <strong>rótulo visible en la entrada</strong>. Los locales que acumulan licencias y abren de forma ininterrumpida deben cerrar al menos <strong>2 horas de cada 24</strong> para limpieza y ventilación. Las terrazas siguen el horario de la actividad, salvo que la ordenanza municipal sea más restrictiva.</p>
+<p>Incumplir el horario es falta grave; hacerlo de forma grave y reiterada (al menos tres veces en seis meses), muy grave.</p>
+<p class="ref">Referencias: <a href="https://noticias.juridicas.com/base_datos/CCAA/ca-o358-2011-int.html">Orden INT/358/2011, arts. 3 a 16</a>; <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 60.1.e, 70 y 71</a>; <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 20, 47.e y 48.j</a>.</p>
+
+<h2 id="t13">Hojas de reclamación</h2>
+<p>El público tiene derecho a tener a su disposición hojas de reclamación en <strong>todos</strong> los establecimientos abiertos al público, y el titular está obligado a tenerlas. No tenerlas o negarse a entregarlas es <strong>falta leve</strong> según la Ley 11/2009.</p>
+<p>En Cataluña el modelo oficial lo regula el <strong>Decreto 121/2013</strong>, de hojas oficiales de queja, reclamación y denuncia en las relaciones de consumo.</p>
+<div class="tablewrap"><table>
+<thead><tr><th>Tipo</th><th>Para qué sirve</th></tr></thead>
+<tbody>
+<tr><td>Queja</td><td>Contar hechos que han afectado al servicio pero que no son infracción. Sirve para mejorar.</td></tr>
+<tr><td>Reclamación</td><td>Pedir una reparación: devolución del dinero, anulación, rescisión del contrato…</td></tr>
+<tr><td>Denuncia</td><td>Comunicar hechos que pueden ser infracción administrativa, para que la Administración investigue.</td></tr>
+</tbody></table></div>
+<h3>Lo que debes saber en la puerta</h3>
+<ul>
+  <li>Debe haber un <strong>cartel permanente y bien visible</strong> que anuncie que hay hojas a disposición del público.</li>
+  <li>Se entregan <strong>de inmediato cuando alguien las pide, aunque no haya consumido ni comprado nada</strong>. Pedirla no obliga a explicar el motivo.</li>
+  <li>Son <strong>tres ejemplares</strong>: uno para la persona consumidora, uno para el organismo habilitado y uno para el establecimiento. Al rellenarla en el local, el cliente se lleva dos y el local se queda uno.</li>
+  <li>La firma o el sello del establecimiento <strong>solo acredita que la ha recibido</strong>, no que esté de acuerdo.</li>
+  <li>Están redactadas en catalán, castellano e inglés.</li>
+  <li>La empresa tiene <strong>un mes</strong> para responder a una queja o reclamación. Si la respuesta no convence, el cliente envía su copia a un organismo de consumo (municipal, comarcal o la Agència Catalana del Consum).</li>
+</ul>
+<div class="trap"><strong>En la práctica</strong>Si te piden la hoja, la entregas con educación y sin discutir. No es función tuya valorar si el cliente tiene razón.</div>
+<p class="ref">Referencias: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 5.1.e, 6.2.e y 49.1.b</a>; <a href="https://cidoc.consumo.gob.es/sites/default/files/Legis_DOC/8CFE86A416AB47E_121-2013.pdf">Decreto 121/2013, arts. 1 a 3, 6, 7 y 9</a>.</p>
+
+<h2 id="t14">Armas y objetos peligrosos</h2>
+<p>El público tiene la obligación de <strong>no llevar armas de ninguna clase ni objetos que puedan usarse con fines violentos</strong>. Asistir con objetos utilizables como armas es <strong>falta grave</strong> del usuario.</p>
+<p>El titular, el organizador y el personal de control de acceso están <strong>obligados a impedir la entrada</strong> a quien lleve armas u objetos susceptibles de ser utilizados como tales, y a expulsarlo si ya está dentro, con ayuda de la policía si hace falta.</p>
+<h3>Reglamento de armas (estatal)</h3>
+<ul>
+  <li>Llevar o usar armas quienes acuden a <strong>establecimientos públicos y lugares de reunión, recreo o esparcimiento</strong> se considera, en general, ilícito (art. 146.2).</li>
+  <li>Está prohibido portar, exhibir o usar fuera del domicilio o del lugar de trabajo armas de fuego cortas y armas blancas, en especial las de hoja puntiaguda (art. 146.1).</li>
+  <li>Son <strong>armas prohibidas</strong>, entre otras: bastones-estoque, puñales de cualquier clase y navajas automáticas; llaves de pugilato (puños americanos), nunchakus y, en general, cualquier instrumento especialmente peligroso para la integridad física (art. 4.1). A estos efectos, un puñal es un arma blanca de hoja menor de 11 cm, de dos filos y puntiaguda.</li>
+  <li>Nunca se pueden portar armas bajo los efectos del alcohol o las drogas (art. 147.2).</li>
+</ul>
+<div class="trap"><strong>Tu límite</strong>Tú impides el acceso y avisas. El registro de personas y la retirada de armas no son funciones tuyas: corresponden a los vigilantes de seguridad privada y a la policía.</div>
+<p class="ref">Referencias: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 5.2.e y 48.p</a>; <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 52.1.b, 52.2 y 60.2</a>; <a href="https://www.boe.es/eli/es/rd/1993/01/29/137/con">Reglamento de armas (RD 137/1993), arts. 4, 146 y 147</a>.</p>
+
+<h2 id="t10">Infracciones y sanciones</h2>
+<h3>Las que más te afectan</h3>
+<div class="tablewrap"><table>
+<thead><tr><th>Conducta</th><th>Gravedad</th></tr></thead>
+<tbody>
+<tr><td>Discriminar en el acceso o la permanencia (art. 10)</td><td>Muy grave</td></tr>
+<tr><td>Admitir menores donde está prohibido, de forma reiterada</td><td>Muy grave</td></tr>
+<tr><td>Superar el aforo con riesgo para las personas</td><td>Muy grave</td></tr>
+<tr><td>Tolerar de forma evidente el consumo generalizado o el tráfico de drogas</td><td>Muy grave</td></tr>
+<tr><td>No dejar entrar a agentes de la autoridad o impedir su labor</td><td>Muy grave</td></tr>
+<tr><td>No atender a personas que necesitan asistencia médica inmediata</td><td>Muy grave</td></tr>
+<tr><td>Admitir menores donde está prohibido</td><td>Grave</td></tr>
+<tr><td>Superar el aforo sin riesgo</td><td>Grave</td></tr>
+<tr><td>Dejar entrar a personas con símbolos, ropa u objetos que inciten a la violencia, el racismo o la xenofobia</td><td>Grave</td></tr>
+<tr><td>Incumplir la normativa sobre el personal de control de acceso o sus centros de formación</td><td>Grave</td></tr>
+<tr><td>Incumplir normas sobre servicios de vigilancia</td><td>Grave</td></tr>
+<tr><td>Tolerar el consumo ilegal de drogas (sin llegar al caso anterior)</td><td>Grave</td></tr>
+<tr><td>Cometer o incitar actos contra la libertad e indemnidad sexuales, si no son delito</td><td>Grave</td></tr>
+<tr><td>Usuario que crea situaciones de peligro o altera el orden, o que asiste con objetos utilizables como armas</td><td>Grave</td></tr>
+<tr><td>Incumplir los horarios</td><td>Grave</td></tr>
+<tr><td>Ejercer el derecho de admisión sin haberlo comunicado</td><td>Leve</td></tr>
+<tr><td>No colocar los rótulos obligatorios; no tener o negar las hojas de reclamación</td><td>Leve</td></tr>
+</tbody></table></div>
+<h3>Sanciones (cuantías vigentes desde la Ley 10/2011)</h3>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Titulares y organizadores</th><th>Público (espectadores y usuarios)</th></tr></thead>
+<tbody>
+<tr><td>Muy grave</td><td>10.001 a 100.000 € (reincidencia hasta 200.000 €), cierre de 6 a 18 meses, revocación de licencia…</td><td>No previsto</td></tr>
+<tr><td>Grave</td><td>1.001 a 10.000 € (reincidencia hasta 20.000 €)</td><td>151 a 500 € (reincidencia hasta 1.000 €)</td></tr>
+<tr><td>Leve</td><td>300 a 1.000 € (reincidencia hasta 2.000 €)</td><td>50 a 150 € (reincidencia hasta 300 €)</td></tr>
+</tbody></table></div>
+<div class="trap"><strong>Cuidado con apuntes antiguos</strong>Muchos tests de internet siguen con las multas de 2009 (15.001 a 150.000 €, 1.501 a 15.000 €, 300 a 1.500 €). Las vigentes son las de la tabla.</div>
+<p>Por faltas graves también se puede imponer la <strong>suspensión de hasta seis meses o la revocación de la habilitación del personal de control de acceso</strong> (art. 51.h), y lo mismo para los centros de formación (art. 51.i). En las faltas leves la Administración puede limitarse a una advertencia.</p>
+<p><strong>Prescripción de las faltas</strong>: muy graves 3 años, graves 2 años, leves 6 meses. Las sanciones prescriben a los 3 años, 2 años y 1 año respectivamente. El procedimiento sancionador debe resolverse y notificarse en <strong>9 meses</strong>.</p>
+<p class="ref">Referencias: <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, arts. 47 a 52, 54 y 57 (texto consolidado)</a>.</p>
+
+<h2 id="t11">Módulo práctico</h2>
+<p class="warn">Este bloque resume el programa del módulo práctico del anexo V (comportamiento en estados de embriaguez o intoxicación, autocontrol y atención al cliente, actuación en situaciones de riesgo, primeros auxilios). Las pautas son de conocimiento general; repásalas con los apuntes de tu centro de formación.</p>
+<h3>En la puerta</h3>
+<p>Aplica siempre la norma, no tu opinión: comprueba documento oficial, aforo, hora y condiciones del rótulo. Si niegas la entrada, hazlo con educación, explica el motivo objetivo y no entres en discusiones. Mantén la calma, tono de voz bajo y distancia de seguridad; no respondas a provocaciones.</p>
+<h3>Embriaguez e intoxicación</h3>
+<p>Signos frecuentes: habla pastosa, falta de equilibrio, olor a alcohol, desinhibición o agresividad, pupilas alteradas, agitación o somnolencia. Con síntomas, la entrada se impide (es una limitación general). Si alguien así ya está dentro, hay que hacerle salir, con ayuda de los vigilantes o de la policía si hace falta, y vigilar si necesita asistencia sanitaria.</p>
+<h3>Conflictos</h3>
+<p>Alteración del orden en los accesos: avisa de inmediato a los vigilantes de seguridad privada; si no hay, a la policía de Cataluña. Solo actúas tú directamente si la urgencia lo exige para proteger la integridad física de las personas, y nunca asumes funciones de vigilante. Cualquier defensa debe ser proporcionada y limitada a lo imprescindible.</p>
+<h3>Primeros auxilios</h3>
+<p>Conducta <strong>PAS</strong>: Proteger (asegurar la zona), Avisar (<strong>112</strong>), Socorrer. Comprueba si la persona responde y si respira. Si está inconsciente pero respira, colócala en <strong>posición lateral de seguridad</strong>. Si no respira, avisa al 112 y empieza la reanimación si sabes hacerla. No des de beber ni comer a una persona inconsciente o muy intoxicada.</p>
+<h3>Evacuación</h3>
+<p>Las vías de evacuación deben estar libres y las puertas deben abrirse fácilmente hacia fuera del sentido de salida. En una emergencia de protección civil, la autoprotección interior y la evacuación las asumen el titular y su personal según el plan de autoprotección.</p>
+
+<p class="ref">Referencias: <a href="https://interior.gencat.cat/es/arees_dactuacio/espectacles/carnet_professional_per_a_controladors_dacces/moduls_de_formacio_per_a_personal_de_control_d_acces/index.html">programa del módulo práctico (Interior)</a>; <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">Decreto 112/2010, arts. 37, 46.4, 52 y 60, y anexo V</a>.</p>
+
+<h2 id="t12">Cifras que caen</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>Dato</th><th>Cifra</th></tr></thead>
+<tbody>
+<tr><td>PCA obligatorio (musicales y extraordinarios)</td><td>Desde 150 de aforo</td></tr>
+<tr><td>PCA en régimen especial</td><td>Siempre</td></tr>
+<tr><td>Nº de PCA</td><td>2 (150–500), 3 (501–1.000), 4 desde 1.001 + 1 por cada 1.000</td></tr>
+<tr><td>Vigilantes en musicales</td><td>1 desde 501, 2 desde 1.001, +1 por cada 1.000</td></tr>
+<tr><td>Sistema automático de aforo</td><td>Desde 151 (aire libre extraordinario: desde 1.000)</td></tr>
+<tr><td>Conservación de imágenes</td><td>3 meses</td></tr>
+<tr><td>Enfermería</td><td>Musicales desde 1.000 y régimen especial</td></tr>
+<tr><td>Desalojo al cierre</td><td>30 min (hasta 500) / 45 min (más de 500)</td></tr>
+<tr><td>Cierre mínimo en locales ininterrumpidos</td><td>2 horas de cada 24</td></tr>
+<tr><td>Curso de formación</td><td>60 h (35 + 25), asistencia mínima 90%</td></tr>
+<tr><td>Convocatorias</td><td>2 al año</td></tr>
+<tr><td>Vigencia del carnet</td><td>4 años</td></tr>
+<tr><td>Pedir la renovación</td><td>Mínimo 2 meses antes; resolución en máximo 2 meses</td></tr>
+<tr><td>Revocación por no renovar</td><td>Superar en 1 año la vigencia</td></tr>
+<tr><td>Revocación por sanciones</td><td>2 o más faltas graves o muy graves en 1 año</td></tr>
+<tr><td>Entregar el carnet revocado</td><td>10 días hábiles</td></tr>
+<tr><td>Edades</td><td>14 (discoteca de juventud), 16 (discotecas, bares musicales…), 18 (régimen especial, sexual, juego)</td></tr>
+<tr><td>Letrero de ruido</td><td>Más de 90 dB(A)</td></tr>
+<tr><td>Cierre de discoteca / bar musical / sala de conciertos</td><td>5.00 / 2.30 / 4.30 (fines de semana +60 / +30 / +30 min)</td></tr>
+<tr><td>Discoteca de juventud</td><td>De 17.00 a 22.00</td></tr>
+<tr><td>Reducción de horario por el alcalde</td><td>Hasta 2 horas</td></tr>
+<tr><td>Hoja de reclamación</td><td>3 ejemplares; respuesta de la empresa en 1 mes</td></tr>
+<tr><td>Alcohol y tabaco</td><td>Prohibida la venta a menores de 18</td></tr>
+<tr><td>Multas a titulares</td><td>Leve 300–1.000 €, grave 1.001–10.000 €, muy grave 10.001–100.000 €</td></tr>
+<tr><td>Multas al público</td><td>Leve 50–150 €, grave 151–500 €</td></tr>
+<tr><td>Prescripción de faltas</td><td>Muy graves 3 años, graves 2 años, leves 6 meses</td></tr>
+<tr><td>Examen</td><td>20 + 10 + 10 preguntas, 1 h 15 min, mínimo 5 en cada parte</td></tr>
+</tbody></table></div>
+
+<h2 id="t15">Fuentes y exámenes anteriores</h2>
+<h3>Exámenes de otros años</h3>
+<p>Interior publica los <strong>modelos de examen y las plantillas de respuestas</strong> de convocatorias anteriores. Es el mejor material que existe para el sábado: <a href="https://interior.gencat.cat/es/arees_dactuacio/espectacles/carnet_professional_per_a_controladors_dacces/models-dexamen-i-de-respostes-de-les-proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces/">abrir la página de modelos y respuestas</a>. Esa web no permite la lectura automática, así que no he podido incorporar sus preguntas aquí. Las preguntas de esta página están escritas a partir de la normativa y cubren los mismos hechos que preguntan los tests públicos de academias.</p>
+<h3>Normativa</h3>
+<ul>
+  <li><a href="https://www.boe.es/buscar/act.php?id=BOE-A-2009-12856">Ley 11/2009, texto consolidado (BOE)</a>. Versión en catalán: <a href="https://portaljuridic.gencat.cat/ca/document-del-pjur/?documentId=479197">Portal Jurídic de Catalunya</a>.</li>
+  <li><a href="https://portaljuridic.gencat.cat/ca/pjur_ocults/pjur_resultats_fitxa?action=fitxa&amp;documentId=540841">Decret 112/2010, Reglamento de espectáculos (Portal Jurídic)</a>. Copia en castellano usada aquí: <a href="https://parlamento-cantabria.es/sites/default/files/dossieres-legislativos/D%20112_2010.pdf">texto consolidado a abril de 2015</a>.</li>
+  <li><a href="https://noticias.juridicas.com/base_datos/CCAA/ca-o358-2011-int.html">Orden INT/358/2011, de horarios</a>.</li>
+  <li><a href="https://cidoc.consumo.gob.es/sites/default/files/Legis_DOC/8CFE86A416AB47E_121-2013.pdf">Decreto 121/2013, hojas oficiales de queja, reclamación y denuncia</a>.</li>
+  <li><a href="https://www.sanidad.gob.es/ca/alcoholJovenes/docs/autonomica/Ley1_2002_CAT.pdf">Ley 1/2002, que modifica el art. 17 de la Ley 20/1985 (alcohol y menores)</a>.</li>
+  <li><a href="https://www.boe.es/buscar/act.php?id=BOE-A-2005-21261">Ley 28/2005, de medidas frente al tabaquismo</a>.</li>
+  <li><a href="https://www.boe.es/eli/es/rd/1993/01/29/137/con">Reglamento de armas, RD 137/1993</a>.</li>
+</ul>
+<h3>Convocatoria</h3>
+<ul>
+  <li><a href="https://dogc.gencat.cat/ca/document-del-dogc/?documentId=1053738">Resolució ISP/3096/2026 en el DOGC</a> (bases, temario y contenido de las pruebas).</li>
+  <li><a href="https://tramits.gencat.cat/es/tramits/tramits-temes/23264_-_Proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces.-Convocatoria-PCA-02-2026">Trámite PCA/02/2026 en Gencat</a>.</li>
+  <li><a href="https://interior.gencat.cat/ca/arees_dactuacio/espectacles/carnet_professional_per_a_controladors_dacces/proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces/">Página de Interior con avisos, listas y fecha de la prueba</a>.</li>
+  <li><a href="https://cido.diba.cat/oposicions/22146278/proves-de-seleccio-per-obtenir-lhabilitacio-com-a-personal-de-control-dacces-generalitat-de-catalunya-departament-dinterior-i-seguretat-publica">Ficha de la convocatoria en CIDO</a> (lista provisional de admitidos publicada el 27.10.2026).</li>
+</ul>
+<h3>Qué está comprobado y qué no</h3>
+<ul>
+  <li><strong>Ley 11/2009</strong>: contrastada con el texto consolidado del BOE (última actualización, 30.4.2020). De ahí salen las multas vigentes y las faltas nuevas.</li>
+  <li><strong>Decreto 112/2010</strong>: contrastado con un texto consolidado a 2015. No he encontrado cambios posteriores en los artículos de acceso, menores, personal de control de acceso y aforo, pero no he podido leer la versión del Portal Jurídic. Si tus apuntes del curso dicen otra cosa en algún artículo, fíate de los apuntes.</li>
+  <li><strong>Orden de horarios, hojas de reclamación, alcohol y armas</strong>: resumidas a partir de los textos enlazados.</li>
+  <li><strong>Módulo práctico y diálogos</strong>: son de elaboración propia a partir del programa oficial.</li>
+</ul>
+</article>
+</div>
+</section>
+
+<!-- ============ TEST ============ -->
+<section class="panel" id="p-test" role="tabpanel">
+  <div class="setup" id="testSetup">
+    <h2 style="margin:0 0 4px;font-variation-settings:'wdth' 72;font-size:28px">Test por temas</h2>
+    <p style="margin:0;color:var(--muted)">Elige temas y número de preguntas. Cada respuesta muestra la explicación y el artículo.</p>
+    <div class="chips" id="topicChips"></div>
+    <div class="row-actions">
+      <label>Preguntas <select id="nQ" style="font:inherit;padding:6px;border-radius:6px">
+        <option>10</option><option selected>20</option><option>30</option><option value="999">Todas</option></select></label>
+      <button class="btn" id="startTest">Empezar test</button>
+      <button class="btn alt" id="startFails">Repasar mis fallos (<span id="failCount">0</span>)</button>
+    </div>
+  </div>
+  <div id="testArea"></div>
+</section>
+
+<!-- ============ SIMULACRO ============ -->
+<section class="panel" id="p-simulacro" role="tabpanel">
+  <div class="setup" id="simSetup">
+    <h2 style="margin:0 0 4px;font-variation-settings:'wdth' 72;font-size:28px">Simulacro de examen</h2>
+    <p style="margin:0 0 12px;color:var(--muted)">Como el examen: 20 preguntas de conocimientos, 10 prácticas y 10 de diálogo (5 en catalán y 5 en castellano), con 1 h 15 min de reloj. La corrección sale al final, con nota de 0 a 10 por parte y mínimo de 5 en cada una.</p>
+    <button class="btn" id="startSim">Empezar simulacro</button>
+  </div>
+  <div id="simArea"></div>
+</section>
+
+<!-- ============ FICHAS ============ -->
+<section class="panel" id="p-fichas" role="tabpanel">
+  <h2 style="margin:0 0 4px;font-variation-settings:'wdth' 72;font-size:28px">Fichas de repaso</h2>
+  <p style="margin:0 0 16px;color:var(--muted)">Toca una ficha para ver la respuesta.</p>
+  <div class="cards" id="cards"></div>
+</section>
+</main>
+
+<script>
+/* ---------- Tema ---------- */
+(function(){
+  const btn=document.getElementById('themeBtn');
+  let t=null; try{t=localStorage.getItem('pca-theme')}catch(e){}
+  if(t) document.documentElement.setAttribute('data-theme',t);
+  btn.addEventListener('click',()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const dark=cur? cur==='dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const next=dark?'light':'dark';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem('pca-theme',next)}catch(e){}
+  });
+})();
+
+/* ---------- Pestañas ---------- */
+const tabs=[...document.querySelectorAll('nav.tabs button')];
+function showTab(id){
+  tabs.forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id?'true':'false'));
+  document.querySelectorAll('section.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+id));
+  window.scrollTo(0,0);
+}
+tabs.forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
+document.querySelectorAll('.toc a').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault(); const el=document.querySelector(a.getAttribute('href')); if(el) el.scrollIntoView();
+}));
+
+document.querySelectorAll('[data-goto]').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault(); showTab('teoria'); const el=document.getElementById(a.dataset.goto); if(el) el.scrollIntoView();
+}));
+document.querySelectorAll('article.t a[href^="#t"]').forEach(a=>a.addEventListener('click',e=>{
+  e.preventDefault(); const el=document.querySelector(a.getAttribute('href')); if(el) el.scrollIntoView();
+}));
+document.querySelectorAll('article.t a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener'});
+
+/* ---------- Calculadora ---------- */
+function calc(){
+  const n=parseInt(document.getElementById('aforo').value,10)||0;
+  const t=document.getElementById('tipo').value;
+  const musical=(t==='musical'||t==='extra_cerrado'||t==='extra_aire');
+  const rows=[];
+  const fmt=x=>x.toLocaleString('es-ES');
+  // PCA
+  let pca='No obligatorio', pcaNo=true;
+  if(t==='especial'){pca='Obligatorio';pcaNo=false}
+  else if(musical && n>=150){
+    pcaNo=false;
+    let k = n<=500?2 : n<=1000?3 : 3+Math.ceil((n-1000)/1000);
+    pca='Mínimo '+k;
+  }
+  rows.push(['Personal de control de acceso','Arts. 57 y 58',pca,pcaNo]);
+  // Vigilantes
+  let vig='No exigido por aforo', vNo=true;
+  if(musical){
+    if(n>=501){vNo=false; let k= n<=1000?1 : 1+Math.ceil((n-1000)/1000); vig=k+(k===1?' vigilante':' vigilantes');}
+  } else if(t==='especial'){vig='Según licencia y memoria de seguridad';vNo=false}
+  rows.push(['Vigilantes de seguridad privada','Art. 43.1',vig,vNo]);
+  // Sistema automático
+  let sa='No obligatorio', saNo=true;
+  if(t==='especial'){sa='Obligatorio';saNo=false}
+  else if((t==='musical'||t==='extra_cerrado') && n>=151){sa='Obligatorio';saNo=false}
+  else if(t==='extra_aire' && n>=1000){sa='Obligatorio';saNo=false}
+  rows.push(['Sistema automático de control de aforo','Art. 68',sa,saNo]);
+  // Grabación
+  let gr='—', grNo=true;
+  if(!saNo && n>=151){grNo=false; gr= n>=501?'Vídeo 3 meses + anexo III':'Vídeo 3 meses'}
+  rows.push(['Grabación de entradas y salidas','Art. 69',gr,grNo]);
+  // Memoria seguridad
+  let ms='No obligatoria', msNo=true;
+  if(t==='especial'||(musical&&n>150)){ms='Obligatoria';msNo=false}
+  rows.push(['Memoria de seguridad','Art. 42',ms,msNo]);
+  // Sanitario
+  let san='Botiquín', sNo=false;
+  if(t==='especial'||(musical&&n>=1000)) san='Enfermería';
+  rows.push(['Asistencia sanitaria','Art. 48',san,sNo]);
+  // Desalojo
+  rows.push(['Tiempo para salir al cierre','Art. 71',(n<=500?'30 min':'45 min'),false]);
+  document.getElementById('calcOut').innerHTML=rows.map(r=>
+    `<div class="row"><div class="k">${r[0]}<small>${r[1]}</small></div><div class="v${r[3]?' no':''}">${r[2]}</div></div>`).join('')+
+    `<div class="row"><div class="k">Aforo introducido<small>Personas</small></div><div class="v">${fmt(n)}</div></div>`;
+}
+document.getElementById('aforo').addEventListener('input',calc);
+document.getElementById('tipo').addEventListener('change',calc);
+calc();
+
+/* ---------- Banco de preguntas ---------- */
+const TOPICS={marco:"Marco legal",derechos:"Derechos y obligaciones",admision:"Admisión y menores",pca:"Personal de control de acceso",seguridad:"Seguridad y salud",aforo:"Aforo y horarios",reclam:"Reclamaciones, alcohol, tabaco y armas",sanciones:"Infracciones y sanciones",practico:"Supuestos prácticos",dialogo:"Diálogo (catalán y castellano)"};
+const Q=[
+// MARCO
+{t:"marco",q:"¿Qué ley regula en Cataluña los espectáculos públicos y las actividades recreativas?",o:["Ley 11/2009, de 6 de julio","Ley 10/1990, de 15 de junio","Ley Orgánica 4/2015, de protección de la seguridad ciudadana","Ley 5/2014, de seguridad privada"],a:0,e:"La Llei 11/2009 sustituyó a la antigua Ley 10/1990 de policía del espectáculo.",r:"Llei 11/2009"},
+{t:"marco",q:"El Reglamento de espectáculos públicos y actividades recreativas se aprobó mediante:",o:["Decreto 112/2010, de 31 de agosto","Decreto 348/2004","Orden INT/358/2011","Decreto 200/1999"],a:0,e:"El Decret 112/2010 desarrolla la Llei 11/2009 y derogó, entre otros, el Decreto 348/2004 sobre habilitación del personal.",r:"Decret 112/2010"},
+{t:"marco",q:"¿Cuáles son los tres principios clásicos que inspiran la Ley 11/2009?",o:["Convivencia, seguridad y calidad","Legalidad, eficacia y jerarquía","Libertad, igualdad y pluralismo","Prevención, protección y sanción"],a:0,e:"Desde la Ley 5/2020 el art. 2.2 añade la no discriminación, el respeto a la dignidad, la libertad e indemnidad sexuales y la no transmisión de estereotipos sexistas.",r:"Ley 11/2009, art. 2.2"},
+{t:"marco",q:"¿Qué añadió la Ley 5/2020 a los principios de la Ley 11/2009?",o:["La no discriminación y el respeto a la libertad e indemnidad sexuales","La rentabilidad de los establecimientos","La libertad de horarios","La gratuidad de los espectáculos"],a:0,e:"También el respeto a la dignidad de mujeres y hombres y la no transmisión de estereotipos sexistas.",r:"Ley 11/2009, art. 2.2"},
+{t:"marco",q:"Según la Ley 11/2009, el personal de control de acceso debe:",o:["Asistir a cursos en un centro de formación habilitado y superar las pruebas de selección","Tener el título de vigilante de seguridad","Ser funcionario municipal","Tener tres años de experiencia en hostelería"],a:0,e:"Lo exige el art. 24.2, redactado por las Leyes 10/2011 y 5/2017.",r:"Ley 11/2009, art. 24.2"},
+{t:"marco",q:"¿Qué actividad queda excluida del ámbito de aplicación de la Ley 11/2009?",o:["Las realizadas en ejercicio del derecho de reunión y manifestación","Los conciertos gratuitos","Las fiestas mayores organizadas por un ayuntamiento","Las discotecas de juventud"],a:0,e:"También quedan excluidos los actos privados o familiares que no se hacen en establecimientos abiertos al público y no comportan riesgo.",r:"Llei 11/2009, art. 4.5"},
+{t:"marco",q:"Según el Reglamento, la restauración, el deporte, el juego y las apuestas y los espectáculos con animales:",o:["Se rigen por su normativa específica y el Reglamento se les aplica supletoriamente","Están totalmente excluidos y nunca se les aplica","Se rigen solo por el Reglamento","Dependen exclusivamente de las ordenanzas municipales"],a:0,e:"Normativa específica y, supletoriamente, el Reglamento.",r:"Decreto 112/2010, art. 2.2"},
+{t:"marco",q:"¿Quién aprueba el catálogo de espectáculos, actividades y establecimientos?",o:["El Govern, por decreto","Cada ayuntamiento, por ordenanza","El Parlament, por ley","Los Mossos d'Esquadra"],a:0,e:"El catálogo figura en el anexo I del Reglamento aprobado por decreto.",r:"Llei 11/2009, art. 3.2"},
+{t:"marco",q:"Según la Ley, los titulares de un establecimiento son también los organizadores de lo que se hace en él:",o:["Salvo que se disponga expresamente otra cosa","Nunca","Solo si el aforo supera 150 personas","Solo en espectáculos extraordinarios"],a:0,e:"Los titulares son organizadores de los espectáculos de su local, salvo disposición expresa en contra.",r:"Llei 11/2009, art. 3.1.g"},
+// DERECHOS
+{t:"derechos",q:"Los espectadores y usuarios tienen derecho a ser admitidos:",o:["En las mismas condiciones objetivas que el resto, si el aforo lo permite y no hay causa de exclusión","Siempre, sin excepción","Solo si tienen entrada anticipada","Solo si son mayores de edad"],a:0,e:"Las causas de exclusión se fijan por reglamento por seguridad, orden público o derecho de admisión.",r:"Llei 11/2009, art. 5.1.c"},
+{t:"derechos",q:"¿Cuál de estas es una obligación del público?",o:["No llevar armas ni objetos que puedan usarse con fines violentos","Consumir al menos una bebida","Mostrar el DNI aunque el local no tenga límite de edad","Pagar la entrada en efectivo"],a:0,e:"Es una de las obligaciones del art. 5.2.e.",r:"Llei 11/2009, art. 5.2.e"},
+{t:"derechos",q:"El público debe seguir las instrucciones de los empleados y del personal de vigilancia y seguridad:",o:["En el interior, en la entrada y en la salida","Solo en el interior","Solo en caso de evacuación","Solo si lo indica la policía"],a:0,e:"La obligación abarca interior, entrada y salida del establecimiento.",r:"Llei 11/2009, art. 5.2.b"},
+{t:"derechos",q:"¿Qué obligación del titular afecta directamente al personal de control de acceso?",o:["Informarle de sus funciones, obligaciones y de las responsabilidades personales por incumplirlas","Pagarle un plus por nocturnidad","Darle un uniforme de vigilante","Formarle en defensa personal"],a:0,e:"El art. 6.2.p obliga a informar al personal de control de acceso y de vigilancia.",r:"Llei 11/2009, art. 6.2.p"},
+{t:"derechos",q:"Las hojas de reclamación deben estar a disposición del público:",o:["En todos los establecimientos abiertos al público","Solo en locales de más de 150 personas","Solo si el cliente las pide por escrito","Solo en el ayuntamiento"],a:0,e:"Es un derecho del público y una obligación del titular; no tenerlas o negarlas es falta leve.",r:"Llei 11/2009, arts. 5.1.e, 6.2.e y 49.1.b"},
+{t:"derechos",q:"Exhibir símbolos que inciten a la discriminación por sexo, racismo, homofobia o xenofobia es, para el público:",o:["Una conducta de la que debe abstenerse por obligación legal","Un derecho de libertad de expresión","Algo permitido si no hay incidentes","Algo que solo regula la ordenanza municipal"],a:0,e:"El público debe abstenerse de llevar y exhibir esos símbolos o adoptar esas conductas.",r:"Llei 11/2009, art. 5.2.j"},
+// ADMISIÓN Y MENORES
+{t:"admision",q:"El derecho de admisión es:",o:["La facultad del titular u organizador de determinar las condiciones de acceso dentro de los límites legales","El derecho del cliente a entrar en cualquier local","La facultad de la policía de cerrar un local","El derecho del portero a elegir libremente quién entra"],a:0,e:"Definición del art. 50.1 del Reglamento.",r:"Decret 112/2010, art. 50.1"},
+{t:"admision",q:"¿Cuál de estas condiciones de acceso sería válida?",o:["No se permite la entrada con calzado de playa","No se permite la entrada a personas extranjeras","Reservado el derecho de admisión, sin más detalle","No se permite la entrada a personas en silla de ruedas"],a:0,e:"Las condiciones deben ser concretas y objetivas, nunca arbitrarias ni discriminatorias.",r:"Decret 112/2010, art. 51.1"},
+{t:"admision",q:"Las condiciones de acceso deben constar:",o:["En un rótulo o placa visible en la zona de acceso, según el anexo IV","Solo en la web del local","En el contrato del portero","En el libro de inspección, sin exponerlas"],a:0,e:"Rótulo visible en la zona de acceso con las características del anexo IV.",r:"Decret 112/2010, art. 51"},
+{t:"admision",q:"¿A quién se envía una copia del rótulo de condiciones de acceso?",o:["Al servicio territorial competente en espectáculos y actividades recreativas","A la Guardia Civil","Al Síndic de Greuges","A la asociación de vecinos"],a:0,e:"El servicio territorial puede exigir su modificación si no cumple los límites legales.",r:"Decret 112/2010, art. 51.2"},
+{t:"admision",q:"La hoja con las condiciones del derecho de admisión:",o:["Debe estar sellada por la Administración y permanecer en el establecimiento","Puede quedarse en la oficina de la empresa","Solo se exige en locales de régimen especial","Solo debe mostrarse si la pide un cliente"],a:0,e:"Debe estar sellada y permanecer obligatoriamente en el lugar.",r:"Decret 112/2010, art. 51.2"},
+{t:"admision",q:"¿Cuál de estos motivos NO aparece en la prohibición de discriminación del derecho de admisión?",o:["Llevar armas u objetos peligrosos","Identidad de género","Orientación sexual","Discapacidad"],a:0,e:"Llevar armas es una limitación general de acceso, no un motivo de discriminación prohibido.",r:"Decret 112/2010, arts. 50.2 y 52"},
+{t:"admision",q:"¿A quién se está obligado a impedir el acceso?",o:["A quien muestre síntomas de embriaguez","A quien vaya solo","A quien no vaya vestido de etiqueta, aunque el rótulo no lo diga","A quien llegue en taxi"],a:0,e:"Es una limitación general del art. 52.1.c.",r:"Decret 112/2010, art. 52.1.c"},
+{t:"admision",q:"Si una persona en situación de limitación general ya está dentro del local:",o:["Debe ser expulsada, pudiendo pedir la asistencia de la policía de Cataluña","Puede quedarse si ya ha pagado","Solo se le deja de servir alcohol","Se espera a la hora de cierre"],a:0,e:"El titular, organizador o responsable debe expulsarla.",r:"Decret 112/2010, art. 52.2"},
+{t:"admision",q:"En los locales obligados a tener personal de control de acceso, ¿quién es responsable del ejercicio del derecho de admisión?",o:["El personal de control de acceso, sin perjuicio de la responsabilidad del titular","Solo el titular","Solo los vigilantes de seguridad","La policía local"],a:0,e:"Art. 55 del Reglamento.",r:"Decret 112/2010, art. 55"},
+{t:"admision",q:"Una persona que crea que le han aplicado mal el derecho de admisión puede:",o:["Denunciarlo ante la administración competente para sancionar o acudir a la vía judicial","Solo pedir el libro de visitas","Únicamente quejarse al portero","Nada, la decisión del portero es definitiva"],a:0,e:"Art. 54.2 del Reglamento.",r:"Decret 112/2010, art. 54.2"},
+{t:"admision",q:"Mediante el derecho de admisión, ¿se puede prohibir entrar con bebida comprada fuera?",o:["Sí","No, nunca","Solo en espectáculos al aire libre","Solo si lo autoriza la policía"],a:0,e:"El art. 49.2 lo permite expresamente.",r:"Decret 112/2010, art. 49.2"},
+{t:"admision",q:"¿A partir de qué edad se puede entrar en una discoteca de juventud?",o:["14 años","12 años","16 años","18 años"],a:0,e:"Los menores de 14 tienen prohibida la entrada en discotecas de juventud.",r:"Decret 112/2010, art. 53.2"},
+{t:"admision",q:"Los menores de 16 años pueden entrar en un bar musical:",o:["Solo cuando haya actuaciones en directo y vayan acompañados de progenitores o tutores","Nunca","Si van con un amigo mayor de edad","Si no consumen alcohol"],a:0,e:"Al terminar la actuación no pueden permanecer en el local.",r:"Decret 112/2010, art. 53.2"},
+{t:"admision",q:"Los menores de 18 años tienen prohibida la entrada en:",o:["Los establecimientos de régimen especial","Los restaurantes musicales","Los conciertos de infancia y juventud","Las salas de fiestas con espectáculo"],a:0,e:"También en locales de naturaleza sexual y de juego y apuestas.",r:"Decret 112/2010, art. 53"},
+{t:"admision",q:"¿Cómo comprueba el personal de control de acceso la edad?",o:["Mediante la exhibición de documentos oficiales de identidad","Por el aspecto físico","Preguntando la fecha de nacimiento","Con la entrada anticipada"],a:0,e:"Función del art. 60.1.c.",r:"Decret 112/2010, art. 60.1.c"},
+// PCA
+{t:"pca",q:"El personal de control de acceso depende contractualmente:",o:["Del titular u organizador del establecimiento o actividad","De la Dirección General de la Policía","Del ayuntamiento","De la empresa de seguridad privada"],a:0,e:"La dependencia existe durante todo el espectáculo, aunque se contrate por medio de una empresa proveedora.",r:"Decret 112/2010, art. 56"},
+{t:"pca",q:"Un local con actividades recreativas musicales debe tener personal de control de acceso a partir de:",o:["150 personas de aforo autorizado","100 personas","151 personas","500 personas"],a:0,e:"A partir de 150. No confundir con el sistema automático de aforo (151).",r:"Decret 112/2010, art. 57"},
+{t:"pca",q:"Un establecimiento de régimen especial debe tener personal de control de acceso:",o:["Independientemente de su aforo","A partir de 150","A partir de 501","Solo los fines de semana"],a:0,e:"Art. 57.c.",r:"Decret 112/2010, art. 57.c"},
+{t:"pca",q:"Discoteca con 450 personas de aforo. Personal de control de acceso mínimo:",o:["2","1","3","4"],a:0,e:"Entre 150 y 500: 2 personas como mínimo.",r:"Decret 112/2010, art. 58.a"},
+{t:"pca",q:"Sala de conciertos con 800 personas de aforo. Personal de control de acceso mínimo:",o:["3","2","4","5"],a:0,e:"Entre 501 y 1.000: 3 como mínimo.",r:"Decret 112/2010, art. 58.b"},
+{t:"pca",q:"A partir de 1.001 personas de aforo, el personal de control de acceso mínimo es:",o:["4, y 1 más por cada 1.000 personas","3, y 1 más por cada 500","5 fijos","2 por cada puerta"],a:0,e:"Art. 58.c.",r:"Decret 112/2010, art. 58.c"},
+{t:"pca",q:"¿Qué leyenda debe llevar el distintivo?",o:["Personal de control de acceso","Seguridad","Portero","Staff"],a:0,e:"Distintivo visible con esa leyenda y los datos de la habilitación.",r:"Decret 112/2010, art. 59"},
+{t:"pca",q:"Durante una inspección, el personal de control de acceso debe:",o:["Mostrar el carnet cuando se le requiera","Negarse si no está el titular","Mostrar solo el DNI","Llamar a su abogado"],a:0,e:"Art. 59.2; además debe permitir y facilitar las inspecciones.",r:"Decret 112/2010, arts. 59.2 y 60.1.h"},
+{t:"pca",q:"¿Cuál de estas NO es función del personal de control de acceso?",o:["Ejercer las funciones propias de los vigilantes de seguridad privada","Controlar que no se supere el aforo","Comprobar la edad con documento oficial","Auxiliar a quien necesite asistencia sanitaria"],a:0,e:"En ningún caso puede asumir funciones de vigilante.",r:"Decret 112/2010, art. 60.2"},
+{t:"pca",q:"Si hay una alteración del orden en los accesos y el local tiene vigilantes, el PCA debe:",o:["Informar inmediatamente a los vigilantes de seguridad privada","Resolverlo él solo en todo caso","Cerrar el local","Esperar a que acabe"],a:0,e:"Sin perjuicio de actuar si la urgencia lo exige para proteger la integridad física.",r:"Decret 112/2010, art. 60.1.f"},
+{t:"pca",q:"Si hay una alteración del orden en los accesos y NO hay vigilantes, el PCA debe informar a:",o:["La policía de Cataluña","El titular, y nada más","El servicio territorial","Nadie"],a:0,e:"Art. 60.1.f, último inciso.",r:"Decret 112/2010, art. 60.1.f"},
+{t:"pca",q:"¿Qué requisito NO se exige para presentarse a las pruebas?",o:["Tener el graduado en ESO","Ser mayor de edad","Haber hecho el curso de formación","Tener conocimientos mínimos de las lenguas oficiales de Cataluña"],a:0,e:"El art. 61 no exige titulación académica.",r:"Decret 112/2010, art. 61"},
+{t:"pca",q:"¿Qué antecedentes impiden la habilitación si no están cancelados?",o:["Condena por delitos contra las personas, el patrimonio o la salud pública","Cualquier multa de tráfico","Sanciones administrativas leves","Haber sido denunciado alguna vez"],a:0,e:"Art. 61.c.",r:"Decret 112/2010, art. 61.c"},
+{t:"pca",q:"¿Qué asistencia mínima al curso debe acreditar el certificado del centro?",o:["90%","75%","80%","100%"],a:0,e:"Art. 62.2.d.",r:"Decret 112/2010, art. 62.2.d"},
+{t:"pca",q:"El curso de formación tiene una duración total de:",o:["60 horas (35 de conocimientos y 25 prácticas)","40 horas","100 horas","35 horas"],a:0,e:"Anexo V del Reglamento.",r:"Decret 112/2010, anexo V"},
+{t:"pca",q:"¿Cuántas veces al año se convocan las pruebas de selección?",o:["Dos","Una","Tres","Cuatro"],a:0,e:"Anexo V, apartado 4.2.",r:"Decret 112/2010, anexo V"},
+{t:"pca",q:"¿Qué documento NO forma parte de la inscripción a la prueba según el Reglamento?",o:["Certificado médico oficial","Certificado de antecedentes penales","Dos fotografías tamaño carnet","Certificado de asistencia del centro de formación"],a:0,e:"Se aporta documento de identidad, antecedentes penales, dos fotos y certificado de asistencia.",r:"Decret 112/2010, art. 62.2"},
+{t:"pca",q:"¿Qué dato NO tiene por qué figurar en el carnet profesional?",o:["El domicilio","La fotografía","El número de carnet","La fecha de caducidad"],a:0,e:"Mínimo: fotografía, nombre y apellidos, número, fecha de expedición y de caducidad.",r:"Decret 112/2010, art. 63.2"},
+{t:"pca",q:"La vigencia del carnet y distintivo es de:",o:["4 años","2 años","5 años","Indefinida"],a:0,e:"Art. 63.3.",r:"Decret 112/2010, art. 63.3"},
+{t:"pca",q:"La renovación del carnet se debe pedir con una antelación mínima de:",o:["2 meses antes de la caducidad","1 mes","15 días","6 meses"],a:0,e:"Y la dirección general debe resolver en un máximo de 2 meses.",r:"Decret 112/2010, art. 64"},
+{t:"pca",q:"Con el carnet caducado:",o:["No se puede ejercer como PCA ni ser contratado hasta renovarlo","Se puede trabajar 3 meses más","Basta con llevar el DNI","Solo se puede trabajar en locales de menos de 150"],a:0,e:"La caducidad conlleva la inhabilitación mientras no se renueve.",r:"Decret 112/2010, art. 63.3"},
+{t:"pca",q:"Es causa de revocación de la habilitación:",o:["Superar en un año la vigencia del carnet sin pedir la renovación","Cambiar de empresa","No trabajar durante seis meses","Mudarse a otra provincia"],a:0,e:"Art. 65.1.a.",r:"Decret 112/2010, art. 65.1.a"},
+{t:"pca",q:"También se revoca la habilitación por sanción firme de:",o:["Dos o más faltas graves o muy graves en un año","Una falta leve","Tres faltas leves en cinco años","Cualquier queja de un cliente"],a:0,e:"Relacionadas con el ejercicio de sus funciones.",r:"Decret 112/2010, art. 65.1.c"},
+{t:"pca",q:"Notificada la revocación, el carnet y distintivo se entregan en:",o:["10 días hábiles","48 horas","1 mes","3 meses"],a:0,e:"Ante la dirección general o los servicios territoriales.",r:"Decret 112/2010, art. 65.3"},
+{t:"pca",q:"Contra la resolución de revocación cabe:",o:["Recurso de alzada ante el titular del departamento","Recurso de casación","Ningún recurso","Reclamación ante el ayuntamiento"],a:0,e:"Art. 65.2.",r:"Decret 112/2010, art. 65.2"},
+{t:"pca",q:"Si te revocan por no renovar o por sanciones, puedes pedir un carnet nuevo:",o:["Pasado un año desde la revocación","Al día siguiente","Pasados cinco años","Nunca"],a:0,e:"Art. 65.5. Si fue por condena, cuando se cancelen los antecedentes.",r:"Decret 112/2010, art. 65.4 y 65.5"},
+// SEGURIDAD
+{t:"seguridad",q:"Una actividad recreativa musical necesita un vigilante de seguridad privada a partir de:",o:["501 personas de aforo","150 personas","1.000 personas","301 personas"],a:0,e:"1 desde 501, 2 desde 1.001 y uno más por cada 1.000.",r:"Decret 112/2010, art. 43.1"},
+{t:"seguridad",q:"¿Cuántos vigilantes necesita un local musical de 1.200 personas?",o:["2","1","3","4"],a:0,e:"A partir de 1.001 personas, 2 vigilantes.",r:"Decret 112/2010, art. 43.1"},
+{t:"seguridad",q:"Los locales donde se ejercen actividades de naturaleza sexual deben tener, como mínimo:",o:["Un vigilante de seguridad privada durante todo el horario","Ningún vigilante","Dos PCA","Un vigilante solo los fines de semana"],a:0,e:"Y otro más a partir de 50 de aforo, y otro por cada fracción de 50.",r:"Decret 112/2010, art. 43.2"},
+{t:"seguridad",q:"Para evitar conductas incívicas en el exterior, el personal debe:",o:["Impedir que el público salga con bebidas","Vender bebidas en vaso de plástico para la calle","Cerrar las ventanas","Pedir el DNI a quien sale"],a:0,e:"Y avisar a la policía de indicios de incivismo en el exterior.",r:"Decret 112/2010, art. 45"},
+{t:"seguridad",q:"¿Qué establecimientos deben tener memoria de seguridad?",o:["Actividades recreativas musicales de más de 150 personas y régimen especial con cualquier aforo","Todos los bares","Solo los de más de 2.000 personas","Solo los espectáculos al aire libre"],a:0,e:"Art. 42.1.",r:"Decret 112/2010, art. 42.1"},
+{t:"seguridad",q:"Un local de actividades musicales debe tener enfermería a partir de:",o:["1.000 personas de aforo","500 personas","150 personas","5.000 personas"],a:0,e:"El resto de establecimientos, botiquín.",r:"Decret 112/2010, art. 48"},
+{t:"seguridad",q:"Si en el interior se pueden superar los 90 dB(A):",o:["Debe haber un letrero de aviso en la entrada","Hay que regalar tapones","Está prohibido abrir","Solo pueden entrar mayores de 25"],a:0,e:"Art. 34.2.",r:"Decret 112/2010, art. 34.2"},
+{t:"seguridad",q:"El control de entrada debe hacerse:",o:["Sin ocupar la vía pública, de modo que las colas no molesten a tráfico ni peatones","En medio de la acera para que se vea","Dentro de la pista de baile","Siempre en la calle de atrás"],a:0,e:"Art. 38.b.",r:"Decret 112/2010, art. 38"},
+{t:"seguridad",q:"Las vías de evacuación, mientras haya actividad, deben estar:",o:["Accesibles, libres de obstáculos y utilizables hasta el exterior","Cerradas con llave para evitar colados","Ocupadas por mesas si hay mucha gente","Señalizadas solo con luz normal"],a:0,e:"Art. 37.2.a.",r:"Decret 112/2010, art. 37"},
+// AFORO Y HORARIOS
+{t:"aforo",q:"El aforo máximo autorizado debe informarse:",o:["Con carteles fácilmente visibles en todas las entradas","Solo en la licencia guardada en la oficina","Solo en la web","Verbalmente a quien pregunte"],a:0,e:"Art. 66.2.",r:"Decret 112/2010, art. 66.2"},
+{t:"aforo",q:"El responsable del control de aforo debe poder informar en todo momento a la policía de:",o:["El número de personas que hay en el local","Los nombres de los clientes","La recaudación","El horario de los trabajadores"],a:0,e:"Art. 67.1.",r:"Decret 112/2010, art. 67.1"},
+{t:"aforo",q:"Un local de actividades musicales debe tener sistema automático de control de aforo a partir de:",o:["151 personas","150 personas","501 personas","1.000 personas"],a:0,e:"Cuidado: el PCA es desde 150; el sistema automático, desde 151.",r:"Decret 112/2010, art. 68.a"},
+{t:"aforo",q:"Un espectáculo musical extraordinario al aire libre necesita sistema automático de aforo a partir de:",o:["1.000 personas","151 personas","500 personas","15.000 personas"],a:0,e:"Art. 68.c.",r:"Decret 112/2010, art. 68.c"},
+{t:"aforo",q:"Las imágenes de entradas y salidas se deben conservar:",o:["3 meses","1 mes","1 año","15 días"],a:0,e:"Respetando la normativa de protección de datos.",r:"Decret 112/2010, art. 69.1"},
+{t:"aforo",q:"Llegada la hora de cierre, en un local de 400 personas el público dispone para salir de:",o:["30 minutos","15 minutos","45 minutos","60 minutos"],a:0,e:"Hasta 500 personas: 30 min; más de 500: 45 min.",r:"Decret 112/2010, art. 71"},
+{t:"aforo",q:"Llegada la hora de cierre, en un local de 900 personas el público dispone para salir de:",o:["45 minutos","30 minutos","60 minutos","20 minutos"],a:0,e:"Más de 500 personas: 45 minutos.",r:"Decret 112/2010, art. 71"},
+{t:"aforo",q:"¿Qué NO se hace al llegar la hora de cierre?",o:["Permitir la entrada a clientes habituales","Encender todo el alumbrado interior","Dejar de servir consumiciones","Apagar la música"],a:0,e:"A partir de la hora de cierre no puede entrar nadie.",r:"Decret 112/2010, art. 71"},
+{t:"aforo",q:"Los locales que pueden abrir de forma ininterrumpida deben cerrar como mínimo:",o:["2 horas de cada 24","1 hora de cada 24","4 horas de cada 24","Un día a la semana"],a:0,e:"Para limpieza y ventilación; esas horas constan en la licencia.",r:"Decret 112/2010, art. 70.2"},
+{t:"aforo",q:"¿Quién determina los horarios generales de apertura y cierre?",o:["Una orden del consejero del departamento competente","Cada titular libremente","Los Mossos d'Esquadra","El Parlament"],a:0,e:"Actualmente la Orden INT/358/2011.",r:"Llei 11/2009, art. 20; Decret 112/2010, art. 70"},
+// SANCIONES
+{t:"sanciones",q:"Discriminar a una persona en el acceso por su origen es una falta:",o:["Muy grave","Grave","Leve","No es infracción administrativa"],a:0,e:"Incumplir la prohibición de discriminación del art. 10 es muy grave.",r:"Llei 11/2009, art. 47.i"},
+{t:"sanciones",q:"Admitir menores donde tienen prohibida la entrada (sin reiteración) es falta:",o:["Grave","Leve","Muy grave","No es falta"],a:0,e:"Si es reiterado, muy grave.",r:"Llei 11/2009, arts. 47.g y 48.m"},
+{t:"sanciones",q:"Permitir la entrada de personas con símbolos que incitan a la violencia o al racismo es falta:",o:["Grave","Leve","Muy grave","No es falta si no hay incidentes"],a:0,e:"Art. 48.i.",r:"Llei 11/2009, art. 48.i"},
+{t:"sanciones",q:"Incumplir la normativa sobre el personal de control de acceso o sus centros de formación es falta:",o:["Grave","Leve","Muy grave","Solo es infracción penal"],a:0,e:"Art. 48.l.",r:"Llei 11/2009, art. 48.l"},
+{t:"sanciones",q:"Ejercer el derecho de admisión sin haberlo comunicado a la autoridad competente es falta:",o:["Leve","Grave","Muy grave","No es infracción"],a:0,e:"Art. 49.1.d.",r:"Llei 11/2009, art. 49.1.d"},
+{t:"sanciones",q:"Superar el aforo permitido con riesgo para la seguridad de las personas es falta:",o:["Muy grave","Grave","Leve","No es infracción"],a:0,e:"Sin riesgo, sería grave.",r:"Llei 11/2009, arts. 47.c y 48.f"},
+{t:"sanciones",q:"¿Qué sanción específica prevé la Ley para el personal de control de acceso por faltas graves?",o:["Suspensión de hasta seis meses o revocación de la habilitación","Multa de 50 a 150 euros","Prisión","Cierre del local donde trabaja"],a:0,e:"Art. 51.h.",r:"Llei 11/2009, art. 51.h"},
+{t:"sanciones",q:"La multa por falta grave a titulares u organizadores va de:",o:["1.001 a 10.000 euros","300 a 1.000 euros","10.001 a 100.000 euros","50 a 150 euros"],a:0,e:"Con reincidencia, hasta 20.000 euros. Cuantías vigentes desde la Ley 10/2011.",r:"Ley 11/2009, art. 51.a"},
+{t:"sanciones",q:"La multa por falta muy grave va de:",o:["10.001 a 100.000 euros","1.001 a 10.000 euros","100.001 a 600.000 euros","3.001 a 30.000 euros"],a:0,e:"Con reincidencia, hasta 200.000 euros.",r:"Ley 11/2009, art. 50.a"},
+{t:"sanciones",q:"La multa por falta leve a titulares u organizadores va de:",o:["300 a 1.000 euros","50 a 150 euros","1.001 a 10.000 euros","100 a 300 euros"],a:0,e:"Con reincidencia, hasta 2.000 euros.",r:"Ley 11/2009, art. 52.a"},
+{t:"sanciones",q:"Cometer o incitar actos contra la libertad e indemnidad sexuales, si no constituyen delito, es falta:",o:["Grave","Leve","Muy grave","No es infracción administrativa"],a:0,e:"Letra añadida por la Ley 5/2020.",r:"Ley 11/2009, art. 48.s"},
+{t:"sanciones",q:"El procedimiento sancionador debe resolverse y notificarse en un máximo de:",o:["9 meses","3 meses","6 meses","1 año"],a:0,e:"Pasado ese plazo, caduca.",r:"Ley 11/2009, art. 57.5"},
+{t:"sanciones",q:"Las faltas leves prescriben a los:",o:["6 meses","1 año","2 años","3 meses"],a:0,e:"Muy graves 3 años, graves 2 años, leves 6 meses.",r:"Ley 11/2009, art. 57.1"},
+{t:"sanciones",q:"Un usuario que comete una falta grave puede ser multado con:",o:["151 a 500 euros","50 a 150 euros","1.001 a 10.000 euros","300 a 1.000 euros"],a:0,e:"Con reincidencia, hasta 1.000 euros.",r:"Ley 11/2009, art. 51.j"},
+{t:"sanciones",q:"Que un usuario asista a un espectáculo con objetos que pueden usarse como armas es falta:",o:["Grave","Leve","Muy grave","No es infracción"],a:0,e:"Art. 48.p.",r:"Llei 11/2009, art. 48.p"},
+{t:"sanciones",q:"No permitir el acceso a los agentes de la autoridad en el ejercicio de sus funciones es falta:",o:["Muy grave","Grave","Leve","No es infracción"],a:0,e:"Art. 47.f.",r:"Llei 11/2009, art. 47.f"},
+{t:"sanciones",q:"No tener hojas de reclamación o negarse a entregarlas es falta:",o:["Leve","Grave","Muy grave","No es infracción"],a:0,e:"Art. 49.1.b.",r:"Llei 11/2009, art. 49.1.b"},
+{t:"sanciones",q:"Las faltas graves prescriben a los:",o:["2 años","6 meses","3 años","1 año"],a:0,e:"Muy graves 3 años, graves 2 años, leves 6 meses.",r:"Llei 11/2009, art. 57.1"},
+{t:"sanciones",q:"Tolerar de forma evidente el consumo generalizado o el tráfico de drogas en el local es falta:",o:["Muy grave","Grave","Leve","No es infracción"],a:0,e:"Tolerar el consumo ilegal sin llegar a ese extremo es falta grave (art. 48.r).",r:"Ley 11/2009, arts. 47.b y 48.r"},
+// PRÁCTICO
+{t:"practico",q:"Un cliente con habla pastosa y que se tambalea quiere entrar. ¿Qué haces?",o:["Le impides el acceso con educación, explicando el motivo","Le dejas entrar si promete no beber más","Le dejas entrar si viene con amigos sobrios","Avisas a la policía antes de hablar con él"],a:0,e:"Los síntomas de embriaguez son una limitación general de acceso.",r:"Decret 112/2010, arts. 52.1.c y 60.1.b"},
+{t:"practico",q:"Un joven que aparenta 17 años no lleva ningún documento oficial. El local prohíbe la entrada a menores de 18:",o:["No puede entrar, porque no puedes comprobar su edad","Entra si un amigo responde por él","Entra si enseña una foto del DNI en el móvil de otra persona","Entra si paga la entrada"],a:0,e:"La edad se comprueba con la exhibición de documentos oficiales de identidad.",r:"Decret 112/2010, art. 60.1.c"},
+{t:"practico",q:"Hay una pelea en la cola de acceso y el local tiene vigilantes de seguridad. Lo primero es:",o:["Informar inmediatamente a los vigilantes de seguridad privada","Separar tú a los implicados por la fuerza","Ignorarlo porque es fuera del local","Cerrar la puerta y esperar"],a:0,e:"Solo actúas directamente si la urgencia lo exige para proteger la integridad física.",r:"Decret 112/2010, art. 60.1.f"},
+{t:"practico",q:"El contador marca el aforo máximo autorizado y hay cola. ¿Qué haces?",o:["No dejas entrar a nadie más hasta que salgan personas","Dejas entrar a los que tienen entrada anticipada","Dejas entrar a cinco más porque el local es grande","Avisas al titular para que amplíe el aforo"],a:0,e:"Controlar que no se supere el aforo es una función del PCA.",r:"Decret 112/2010, art. 60.1.d"},
+{t:"practico",q:"Un agente de los Mossos d'Esquadra hace una inspección y te pide el carnet:",o:["Se lo muestras y facilitas la inspección","Le dices que espere al titular","Le enseñas solo el DNI","Te niegas porque estás trabajando"],a:0,e:"Debes mostrar el carnet cuando te lo requieran y facilitar las inspecciones.",r:"Decret 112/2010, arts. 59.2 y 60.1.h"},
+{t:"practico",q:"Ha llegado la hora de cierre y un grupo quiere entrar porque «sale un amigo»:",o:["No los dejas entrar","Entran 5 minutos","Entran si no piden consumición","Entran si pagan"],a:0,e:"A partir de la hora límite de cierre no se permite el acceso a nadie.",r:"Decret 112/2010, arts. 60.1.e y 71"},
+{t:"practico",q:"Detectas que un cliente lleva una navaja:",o:["Le impides el acceso y, si hay riesgo, avisas a los vigilantes o a la policía","Le pides que te la deje y le dejas pasar","Le dejas entrar si es pequeña","Le registras a fondo tú mismo"],a:0,e:"Llevar armas u objetos utilizables como tales es causa de limitación general; el registro es función de seguridad privada, no del PCA.",r:"Decret 112/2010, arts. 52.1.b y 60.2"},
+{t:"practico",q:"Una persona lleva una camiseta con simbología que hace apología del nazismo:",o:["Le impides la entrada","Le dejas entrar si se tapa la camiseta dentro","Le dejas entrar, es libertad de expresión","Le dejas entrar si no hay quejas"],a:0,e:"Ropa o símbolos que incitan a la violencia o hacen apología contraria a los derechos fundamentales: acceso impedido. Dejarle entrar es falta grave.",r:"Decret 112/2010, art. 52.1.b; Llei 11/2009, art. 48.i"},
+{t:"practico",q:"El titular te dice que no dejes entrar a personas de un determinado origen:",o:["No debes aplicarlo: es discriminación prohibida y falta muy grave","Lo aplicas porque es su derecho de admisión","Lo aplicas solo los sábados","Lo aplicas si está en el rótulo"],a:0,e:"El derecho de admisión nunca puede ser discriminatorio, aunque esté escrito.",r:"Llei 11/2009, arts. 10 y 47.i"},
+{t:"practico",q:"Una persona se desploma en la entrada. Siguiendo la conducta PAS, lo primero es:",o:["Proteger: asegurarte de que la zona es segura","Darle agua","Levantarla rápidamente","Esperar a ver si se recupera sola"],a:0,e:"PAS: Proteger, Avisar (112), Socorrer.",r:"Primeros auxilios (módulo práctico)"},
+{t:"practico",q:"¿Cuál es el teléfono único de emergencias?",o:["112","091","061 únicamente","088"],a:0,e:"El 112 coordina todos los servicios de emergencia.",r:"Primeros auxilios (módulo práctico)"},
+{t:"practico",q:"Una persona está inconsciente pero respira con normalidad. ¿En qué posición la colocas mientras llega la ayuda?",o:["Posición lateral de seguridad","Sentada","Boca abajo","De pie apoyada en la pared"],a:0,e:"La posición lateral de seguridad evita la obstrucción de la vía aérea.",r:"Primeros auxilios (módulo práctico)"},
+{t:"practico",q:"Un cliente te insulta tras negarle la entrada. La actitud correcta es:",o:["Mantener la calma, no responder a provocaciones y, si escala, avisar a vigilantes o policía","Responder con el mismo tono","Empujarle para alejarle","Dejarle entrar para evitar problemas"],a:0,e:"Técnicas de autocontrol y atención al cliente del módulo práctico.",r:"Módulo práctico (anexo V)"},
+{t:"practico",q:"Un cliente quiere salir a la calle con su copa:",o:["Se lo impides","Le dejas si es de plástico","Le dejas si se queda en la puerta","Le dejas si es cliente habitual"],a:0,e:"Hay que impedir que el público salga con bebidas.",r:"Decret 112/2010, art. 45.a"},
+{t:"practico",q:"Una pareja del mismo sexo quiere entrar y cumple todas las condiciones del rótulo:",o:["Pueden entrar","Les niegas la entrada si el titular lo prefiere","Solo si van con más gente","Solo entre semana"],a:0,e:"Negarles la entrada sería discriminación por orientación sexual: falta muy grave.",r:"Llei 11/2009, art. 10"},
+{t:"practico",q:"Durante la noche se produce un altercado en la puerta de un local sin vigilantes. Debes:",o:["Informar directamente a la policía de Cataluña","Llamar a la empresa de seguridad del local de al lado","Resolverlo tú con la fuerza necesaria","Cerrar y no hacer nada"],a:0,e:"Si no hay vigilantes, se informa directamente a la policía.",r:"Decret 112/2010, art. 60.1.f"},
+{t:"practico",q:"Una persona está consumiendo drogas en la cola de acceso:",o:["Le impides el acceso","La dejas entrar si deja de consumir","La dejas entrar si paga más","No es asunto tuyo porque está fuera"],a:0,e:"Quien esté consumiendo drogas o muestre síntomas de haberlas consumido no puede entrar.",r:"Decret 112/2010, art. 52.1.c"},
+{t:"practico",q:"Un menor de 15 años quiere entrar en una discoteca acompañado de su madre en una noche sin actuaciones en directo:",o:["No puede entrar","Puede entrar porque va con su madre","Puede entrar hasta las 22 h","Puede entrar si no consume alcohol"],a:0,e:"La excepción para menores de 16 exige actuaciones en directo y compañía de progenitores o tutores.",r:"Decret 112/2010, art. 53.2"},
+// HORARIOS (Orden INT/358/2011)
+{t:"aforo",q:"¿Cuál es la hora máxima de cierre general de una discoteca?",o:["Las 5.00 h","Las 3.00 h","Las 6.00 h","Las 2.30 h"],a:0,e:"Discotecas, salas de baile y salas de fiestas con espectáculo: de 17.00 a 5.00 h.",r:"Orden INT/358/2011, art. 4"},
+{t:"aforo",q:"Las noches de viernes, sábado y vísperas de festivo, una discoteca puede prolongar el cierre:",o:["60 minutos","30 minutos","90 minutos","No puede prolongarlo"],a:0,e:"Bares musicales y salas de conciertos, 30 minutos; discotecas, 60.",r:"Orden INT/358/2011, art. 4"},
+{t:"aforo",q:"¿Cuál es la hora máxima de cierre general de un bar musical?",o:["Las 2.30 h","Las 3.30 h","Las 5.00 h","Las 1.30 h"],a:0,e:"Abre a partir de las 12.00 y cierra a las 2.30, con 30 minutos más en fin de semana.",r:"Orden INT/358/2011, art. 4"},
+{t:"aforo",q:"¿Cuál es el horario de una discoteca de juventud?",o:["De 17.00 a 22.00 h","De 17.00 a 24.00 h","De 20.00 a 2.00 h","De 12.00 a 20.00 h"],a:0,e:"Sin prolongación de fin de semana.",r:"Orden INT/358/2011, art. 4"},
+{t:"aforo",q:"¿Cuál es la hora máxima de cierre general de una sala de conciertos, café teatro o café concierto?",o:["Las 4.30 h","Las 2.30 h","Las 5.00 h","Las 6.00 h"],a:0,e:"Con 30 minutos más en fin de semana y vísperas de festivo.",r:"Orden INT/358/2011, art. 4"},
+{t:"aforo",q:"En Nochevieja, una discoteca puede cerrar más tarde que el horario general:",o:["90 minutos","30 minutos","60 minutos","120 minutos"],a:0,e:"El resto de actividades, 60 minutos.",r:"Orden INT/358/2011, art. 6"},
+{t:"aforo",q:"¿Quién puede reducir el horario de locales o zonas concretas por molestias vecinales, y cuánto?",o:["El alcalde, hasta 2 horas","La policía, hasta 4 horas","El titular, libremente","El alcalde, sin límite"],a:0,e:"Mediante resolución motivada y con los informes policiales correspondientes.",r:"Orden INT/358/2011, art. 14"},
+{t:"aforo",q:"El horario de apertura y cierre del local debe constar:",o:["En un rótulo visible en la entrada","Solo en la licencia","Solo en la web del local","En el carnet del personal"],a:0,e:"Incluidas las prolongaciones o reducciones.",r:"Orden INT/358/2011, art. 16; Decreto 112/2010, art. 70.3"},
+{t:"aforo",q:"Del 1 de junio al 15 de septiembre, una discoteca puede sumar al horario general:",o:["45 minutos","15 minutos","90 minutos","Nada"],a:0,e:"También en Semana Santa, Carnaval, Navidad y fiestas locales. Bares y salas de conciertos, 30 minutos.",r:"Orden INT/358/2011, art. 7"},
+// RECLAMACIONES, ALCOHOL, TABACO, ARMAS
+{t:"reclam",q:"Una persona a la que no has dejado entrar te pide la hoja de reclamaciones. No ha consumido nada.",o:["Se le entrega de inmediato igualmente","No tiene derecho porque no es cliente","Se le entrega solo si enseña el DNI","Se le dice que vuelva al día siguiente"],a:0,e:"La hoja se entrega cuando se pide, aunque no haya compra ni consumo.",r:"Decreto 121/2013, art. 7"},
+{t:"reclam",q:"¿Cuántos ejemplares tiene la hoja oficial de queja, reclamación y denuncia?",o:["Tres","Dos","Uno","Cuatro"],a:0,e:"Uno para el consumidor, uno para el organismo habilitado y uno para el establecimiento.",r:"Decreto 121/2013, arts. 3 y 9"},
+{t:"reclam",q:"Al rellenar la hoja en el local, ¿cómo se reparten los ejemplares?",o:["Dos para el cliente y uno para el establecimiento","Uno para cada uno y el tercero se destruye","Los tres para el establecimiento","Los tres para el cliente"],a:0,e:"El cliente se lleva el suyo y el del organismo habilitado.",r:"Decreto 121/2013, art. 9.1"},
+{t:"reclam",q:"La firma o el sello del establecimiento en la hoja de reclamación significa:",o:["Solo que la ha recibido","Que da la razón al cliente","Que se compromete a devolver el dinero","Que renuncia a defenderse"],a:0,e:"Es un acuse de recibo, no una aceptación de los hechos.",r:"Decreto 121/2013, art. 9.1"},
+{t:"reclam",q:"¿Qué plazo tiene la empresa para responder a una queja o reclamación?",o:["Un mes","10 días","Tres meses","Un año"],a:0,e:"Si la respuesta no es satisfactoria, el cliente puede enviar su copia a un organismo de consumo.",r:"Decreto 121/2013, art. 9.3"},
+{t:"reclam",q:"Un cliente quiere que le devuelvan el importe de la entrada. Eso es una:",o:["Reclamación","Queja","Denuncia","Sugerencia"],a:0,e:"Reclamación: pide una reparación. Queja: hechos sin infracción. Denuncia: posible infracción administrativa.",r:"Decreto 121/2013, art. 2"},
+{t:"reclam",q:"Sobre las hojas de reclamación, el establecimiento debe tener:",o:["Un cartel permanente y visible que anuncie que están a disposición del público","Un libro cerrado en la oficina","Solo un correo electrónico de contacto","Un buzón de sugerencias"],a:0,e:"Y las hojas disponibles de forma inmediata.",r:"Decreto 121/2013, arts. 6 y 7"},
+{t:"reclam",q:"No tener hojas de reclamación o negarse a entregarlas es, según la Ley 11/2009:",o:["Falta leve","Falta grave","Falta muy grave","No es infracción"],a:0,e:"Art. 49.1.b.",r:"Ley 11/2009, art. 49.1.b"},
+{t:"reclam",q:"En Cataluña está prohibido vender o suministrar bebidas alcohólicas a menores de:",o:["18 años","16 años","14 años","21 años"],a:0,e:"Cualquier bebida alcohólica, sea cual sea su graduación.",r:"Ley 20/1985, art. 17 (Ley 1/2002)"},
+{t:"reclam",q:"Sobre el alcohol y los menores, los establecimientos de venta y consumo deben:",o:["Tener un cartel bien visible que recuerde la prohibición","Pedir una autorización de los padres","Servir solo cerveza a los menores","Avisar a la policía de cada menor que entra"],a:0,e:"Lo impone la Ley 20/1985.",r:"Ley 20/1985, art. 17"},
+{t:"reclam",q:"La venta o entrega de productos del tabaco está prohibida a menores de:",o:["18 años","16 años","14 años","21 años"],a:0,e:"Ley estatal de medidas frente al tabaquismo.",r:"Ley 28/2005, art. 3"},
+{t:"reclam",q:"Según el Reglamento de armas, que quienes acuden a establecimientos públicos y lugares de recreo lleven armas se considera, en general:",o:["Ilícito","Permitido con licencia","Permitido si no las exhiben","Una cuestión que decide el titular"],a:0,e:"Art. 146.2 del Reglamento de armas.",r:"RD 137/1993, art. 146.2"},
+{t:"reclam",q:"¿Cuál de estos objetos es un arma prohibida según el Reglamento de armas?",o:["Una navaja automática","Un paraguas","Un llavero","Un bolígrafo"],a:0,e:"También los puñales, los bastones-estoque, los puños americanos y los nunchakus.",r:"RD 137/1993, art. 4.1"},
+{t:"reclam",q:"A efectos del Reglamento de armas, un puñal es un arma blanca:",o:["De hoja menor de 11 cm, de dos filos y puntiaguda","De hoja mayor de 20 cm","De un solo filo y punta roma","Con apertura automática"],a:0,e:"Definición del art. 4.1.f.",r:"RD 137/1993, art. 4.1.f"},
+{t:"practico",q:"Hay un concierto en directo en un bar musical y entra un chico de 15 años con su padre. Pide una cerveza en la barra.",o:["Puede estar en el concierto, pero no se le puede servir alcohol","Puede beber porque va con su padre","No puede estar en el local en ningún caso","Puede beber si la cerveza es sin graduación alta"],a:0,e:"Entra por la excepción de actuaciones en directo acompañado de progenitor, pero el alcohol está prohibido a menores de 18.",r:"Decreto 112/2010, art. 53.2; Ley 20/1985, art. 17"},
+{t:"practico",q:"Un cliente te pide la hoja de reclamaciones de malas maneras. ¿Qué haces?",o:["Se la entregas con educación y sin discutir","Le dices que primero se calme y vuelva otro día","Le pides que explique el motivo por escrito antes","Llamas a seguridad para que lo expulsen"],a:0,e:"Tiene derecho a ella. Tu función no es valorar si tiene razón.",r:"Decreto 121/2013, art. 7; Ley 11/2009, art. 5.1.e"},
+{t:"practico",q:"Una clienta te dice que un hombre la está acosando y tocando dentro del local.",o:["La atiendes, avisas de inmediato a los vigilantes o a la policía y te aseguras de que está protegida","Le dices que cambie de zona","Le dices que eso no es función del control de acceso","Esperas a ver si se repite"],a:0,e:"El público tiene derecho a su libertad e indemnidad sexuales; atentar contra ellas es falta grave o delito.",r:"Ley 11/2009, arts. 5.1.d y 48.s"},
+{t:"practico",q:"Son las 5.00 h, hora de cierre de una discoteca de 800 personas de aforo. ¿Qué se hace?",o:["Se para la música, se encienden las luces, no se sirve más y el público tiene 45 minutos para salir","Se sigue sirviendo 45 minutos más","Se cierra la puerta con el público dentro","Se da una hora de margen para acabar las copas"],a:0,e:"Más de 500 personas: 45 minutos; hasta 500: 30 minutos.",r:"Decreto 112/2010, art. 71; Orden INT/358/2011, art. 10"},
+// DIÁLOGO
+{t:"dialogo",d:"ca1",lang:"ca",p:"— Bona nit. Em pots ensenyar el DNI, si us plau?\n— Me l'he deixat a casa, però tinc divuit anys. Et puc ensenyar una foto al mòbil.\n— Ho sento, necessito veure un document oficial original. Sense document no et puc deixar entrar.\n— I el carnet de conduir, serveix?\n— Sí, el carnet de conduir és un document oficial. Endavant, passa. La guarda-roba és al fons a la dreta.",q:"Què demana el controlador al client?",o:["El DNI", "L'entrada", "La jaqueta", "Diners"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca1",lang:"ca",p:"— Bona nit. Em pots ensenyar el DNI, si us plau?\n— Me l'he deixat a casa, però tinc divuit anys. Et puc ensenyar una foto al mòbil.\n— Ho sento, necessito veure un document oficial original. Sense document no et puc deixar entrar.\n— I el carnet de conduir, serveix?\n— Sí, el carnet de conduir és un document oficial. Endavant, passa. La guarda-roba és al fons a la dreta.",q:"Per què el client no ensenya el DNI?",o:["Perquè se l'ha deixat a casa", "Perquè l'ha perdut dins del local", "Perquè és menor d'edat", "Perquè no en té"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca1",lang:"ca",p:"— Bona nit. Em pots ensenyar el DNI, si us plau?\n— Me l'he deixat a casa, però tinc divuit anys. Et puc ensenyar una foto al mòbil.\n— Ho sento, necessito veure un document oficial original. Sense document no et puc deixar entrar.\n— I el carnet de conduir, serveix?\n— Sí, el carnet de conduir és un document oficial. Endavant, passa. La guarda-roba és al fons a la dreta.",q:"El controlador accepta la foto del mòbil?",o:["No, vol veure un document oficial original", "Sí, sense cap problema", "Sí, si el client paga un suplement", "Sí, si ve acompanyat"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca1",lang:"ca",p:"— Bona nit. Em pots ensenyar el DNI, si us plau?\n— Me l'he deixat a casa, però tinc divuit anys. Et puc ensenyar una foto al mòbil.\n— Ho sento, necessito veure un document oficial original. Sense document no et puc deixar entrar.\n— I el carnet de conduir, serveix?\n— Sí, el carnet de conduir és un document oficial. Endavant, passa. La guarda-roba és al fons a la dreta.",q:"Amb quin document entra finalment el client?",o:["Amb el carnet de conduir", "Amb el passaport", "Amb una targeta bancària", "No entra"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca1",lang:"ca",p:"— Bona nit. Em pots ensenyar el DNI, si us plau?\n— Me l'he deixat a casa, però tinc divuit anys. Et puc ensenyar una foto al mòbil.\n— Ho sento, necessito veure un document oficial original. Sense document no et puc deixar entrar.\n— I el carnet de conduir, serveix?\n— Sí, el carnet de conduir és un document oficial. Endavant, passa. La guarda-roba és al fons a la dreta.",q:"On és la guarda-roba?",o:["Al fons a la dreta", "A l'entrada a l'esquerra", "Al pis de dalt", "Al costat de la barra"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca2",lang:"ca",p:"— Bona nit. Quanta estona hem d'esperar per entrar?\n— Ara mateix el local està ple. Hem arribat a l'aforament màxim i no pot entrar ningú fins que surti gent.\n— Però tenim entrades anticipades!\n— Ho entenc, però la norma és la mateixa per a tothom. Si us espereu uns deu minuts, segurament podreu passar.\n— D'acord. Fins a quina hora està obert?\n— Tanquem a les cinc de la matinada.",q:"Per què no poden entrar els clients en aquest moment?",o:["Perquè s'ha arribat a l'aforament màxim", "Perquè el local ja ha tancat", "Perquè no tenen entrada", "Perquè són menors d'edat"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca2",lang:"ca",p:"— Bona nit. Quanta estona hem d'esperar per entrar?\n— Ara mateix el local està ple. Hem arribat a l'aforament màxim i no pot entrar ningú fins que surti gent.\n— Però tenim entrades anticipades!\n— Ho entenc, però la norma és la mateixa per a tothom. Si us espereu uns deu minuts, segurament podreu passar.\n— D'acord. Fins a quina hora està obert?\n— Tanquem a les cinc de la matinada.",q:"Què diuen els clients que tenen?",o:["Entrades anticipades", "Una reserva de taula", "Un carnet de soci", "Una invitació del propietari"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca2",lang:"ca",p:"— Bona nit. Quanta estona hem d'esperar per entrar?\n— Ara mateix el local està ple. Hem arribat a l'aforament màxim i no pot entrar ningú fins que surti gent.\n— Però tenim entrades anticipades!\n— Ho entenc, però la norma és la mateixa per a tothom. Si us espereu uns deu minuts, segurament podreu passar.\n— D'acord. Fins a quina hora està obert?\n— Tanquem a les cinc de la matinada.",q:"Quanta estona els recomana esperar el controlador?",o:["Uns deu minuts", "Mitja hora", "Una hora", "Fins a l'endemà"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca2",lang:"ca",p:"— Bona nit. Quanta estona hem d'esperar per entrar?\n— Ara mateix el local està ple. Hem arribat a l'aforament màxim i no pot entrar ningú fins que surti gent.\n— Però tenim entrades anticipades!\n— Ho entenc, però la norma és la mateixa per a tothom. Si us espereu uns deu minuts, segurament podreu passar.\n— D'acord. Fins a quina hora està obert?\n— Tanquem a les cinc de la matinada.",q:"A quina hora tanca el local?",o:["A les cinc de la matinada", "A les tres de la matinada", "A les dues de la matinada", "A les sis del matí"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"ca2",lang:"ca",p:"— Bona nit. Quanta estona hem d'esperar per entrar?\n— Ara mateix el local està ple. Hem arribat a l'aforament màxim i no pot entrar ningú fins que surti gent.\n— Però tenim entrades anticipades!\n— Ho entenc, però la norma és la mateixa per a tothom. Si us espereu uns deu minuts, segurament podreu passar.\n— D'acord. Fins a quina hora està obert?\n— Tanquem a les cinc de la matinada.",q:"Què diu el controlador sobre la norma?",o:["Que és la mateixa per a tothom", "Que no s'aplica als qui tenen entrada", "Que només s'aplica els dissabtes", "Que la decideix cada client"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es1",lang:"es",p:"— Buenas noches. Quiero una hoja de reclamaciones.\n— Por supuesto. ¿Puedo preguntarle qué ha ocurrido?\n— No me han dejado entrar porque llevo chanclas, y me parece injusto.\n— Lo entiendo. Es una de las condiciones de acceso que figuran en el rótulo de la entrada. Aquí tiene la hoja; puede rellenarla en la mesa del vestíbulo.\n— Gracias. ¿Me quedo con una copia?\n— Sí, usted se queda con dos ejemplares y nosotros con uno.",q:"¿Qué pide el cliente?",o:["Una hoja de reclamaciones", "Que le devuelvan el dinero", "Hablar con la policía", "Una entrada gratis"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es1",lang:"es",p:"— Buenas noches. Quiero una hoja de reclamaciones.\n— Por supuesto. ¿Puedo preguntarle qué ha ocurrido?\n— No me han dejado entrar porque llevo chanclas, y me parece injusto.\n— Lo entiendo. Es una de las condiciones de acceso que figuran en el rótulo de la entrada. Aquí tiene la hoja; puede rellenarla en la mesa del vestíbulo.\n— Gracias. ¿Me quedo con una copia?\n— Sí, usted se queda con dos ejemplares y nosotros con uno.",q:"¿Por qué no le han dejado entrar?",o:["Porque lleva chanclas", "Porque es menor de edad", "Porque el local está lleno", "Porque ha bebido demasiado"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es1",lang:"es",p:"— Buenas noches. Quiero una hoja de reclamaciones.\n— Por supuesto. ¿Puedo preguntarle qué ha ocurrido?\n— No me han dejado entrar porque llevo chanclas, y me parece injusto.\n— Lo entiendo. Es una de las condiciones de acceso que figuran en el rótulo de la entrada. Aquí tiene la hoja; puede rellenarla en la mesa del vestíbulo.\n— Gracias. ¿Me quedo con una copia?\n— Sí, usted se queda con dos ejemplares y nosotros con uno.",q:"¿Dónde figura esa condición de acceso?",o:["En el rótulo de la entrada", "En la página web del local", "En la entrada que ha comprado", "En ningún sitio"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es1",lang:"es",p:"— Buenas noches. Quiero una hoja de reclamaciones.\n— Por supuesto. ¿Puedo preguntarle qué ha ocurrido?\n— No me han dejado entrar porque llevo chanclas, y me parece injusto.\n— Lo entiendo. Es una de las condiciones de acceso que figuran en el rótulo de la entrada. Aquí tiene la hoja; puede rellenarla en la mesa del vestíbulo.\n— Gracias. ¿Me quedo con una copia?\n— Sí, usted se queda con dos ejemplares y nosotros con uno.",q:"¿Dónde puede rellenar la hoja?",o:["En la mesa del vestíbulo", "En la barra", "En la calle", "En su casa, obligatoriamente"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es1",lang:"es",p:"— Buenas noches. Quiero una hoja de reclamaciones.\n— Por supuesto. ¿Puedo preguntarle qué ha ocurrido?\n— No me han dejado entrar porque llevo chanclas, y me parece injusto.\n— Lo entiendo. Es una de las condiciones de acceso que figuran en el rótulo de la entrada. Aquí tiene la hoja; puede rellenarla en la mesa del vestíbulo.\n— Gracias. ¿Me quedo con una copia?\n— Sí, usted se queda con dos ejemplares y nosotros con uno.",q:"¿Con cuántos ejemplares se queda el cliente?",o:["Con dos", "Con uno", "Con tres", "Con ninguno"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es2",lang:"es",p:"— ¡Perdona! Mi amiga se ha mareado y se ha caído en la pista.\n— Tranquila, voy contigo. ¿Está consciente?\n— Sí, pero dice que le duele la cabeza.\n— De acuerdo. Mi compañero llama al 112 ahora mismo. No la muevas y no le des nada de beber.\n— ¿Tardará mucho la ambulancia?\n— Unos diez minutos. Yo me quedo con vosotras hasta que llegue.",q:"¿Qué le ha pasado a la amiga?",o:["Se ha mareado y se ha caído", "Ha perdido el bolso", "Se ha peleado con alguien", "Se ha quedado dormida"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es2",lang:"es",p:"— ¡Perdona! Mi amiga se ha mareado y se ha caído en la pista.\n— Tranquila, voy contigo. ¿Está consciente?\n— Sí, pero dice que le duele la cabeza.\n— De acuerdo. Mi compañero llama al 112 ahora mismo. No la muevas y no le des nada de beber.\n— ¿Tardará mucho la ambulancia?\n— Unos diez minutos. Yo me quedo con vosotras hasta que llegue.",q:"¿Cómo se encuentra?",o:["Consciente, con dolor de cabeza", "Inconsciente", "Perfectamente", "Con dolor en una pierna"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es2",lang:"es",p:"— ¡Perdona! Mi amiga se ha mareado y se ha caído en la pista.\n— Tranquila, voy contigo. ¿Está consciente?\n— Sí, pero dice que le duele la cabeza.\n— De acuerdo. Mi compañero llama al 112 ahora mismo. No la muevas y no le des nada de beber.\n— ¿Tardará mucho la ambulancia?\n— Unos diez minutos. Yo me quedo con vosotras hasta que llegue.",q:"¿Quién llama al 112?",o:["El compañero del controlador", "La amiga de la chica", "El propio controlador", "Nadie"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es2",lang:"es",p:"— ¡Perdona! Mi amiga se ha mareado y se ha caído en la pista.\n— Tranquila, voy contigo. ¿Está consciente?\n— Sí, pero dice que le duele la cabeza.\n— De acuerdo. Mi compañero llama al 112 ahora mismo. No la muevas y no le des nada de beber.\n— ¿Tardará mucho la ambulancia?\n— Unos diez minutos. Yo me quedo con vosotras hasta que llegue.",q:"¿Qué indica el controlador que no hay que hacer?",o:["Moverla ni darle de beber", "Hablar con ella", "Quedarse a su lado", "Esperar a la ambulancia"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+{t:"dialogo",d:"es2",lang:"es",p:"— ¡Perdona! Mi amiga se ha mareado y se ha caído en la pista.\n— Tranquila, voy contigo. ¿Está consciente?\n— Sí, pero dice que le duele la cabeza.\n— De acuerdo. Mi compañero llama al 112 ahora mismo. No la muevas y no le des nada de beber.\n— ¿Tardará mucho la ambulancia?\n— Unos diez minutos. Yo me quedo con vosotras hasta que llegue.",q:"¿Cuánto tardará la ambulancia, según el controlador?",o:["Unos diez minutos", "Media hora", "Dos minutos", "No lo sabe"],a:0,e:"La respuesta está en el diálogo.",r:"Comprensión del diálogo"},
+];
+Q.forEach((q,i)=>q.id=i);
+
+/* ---------- Utilidades ---------- */
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function getFails(){try{return JSON.parse(localStorage.getItem('pca-fails')||'[]')}catch(e){return[]}}
+function setFails(a){try{localStorage.setItem('pca-fails',JSON.stringify(a))}catch(e){}updFailCount()}
+function addFail(id){const f=getFails();if(!f.includes(id)){f.push(id);setFails(f)}}
+function removeFail(id){setFails(getFails().filter(x=>x!==id))}
+function updFailCount(){document.getElementById('failCount').textContent=getFails().length}
+const L=['A','B','C','D'];
+function prepare(q){const order=shuffle([0,1,2,3]);return {...q,order}}
+
+/* ---------- Motor de test ---------- */
+function Runner(area,list,opts){
+  this.area=area;this.list=list.map(prepare);this.i=0;this.ok=0;this.answers=[];this.opts=opts||{};this.t0=Date.now();
+  this.render();
+}
+Runner.prototype.render=function(){
+  const q=this.list[this.i], n=this.list.length, self=this;
+  const pct=Math.round(this.i/n*100);
+  this.area.innerHTML=`<div class="qcard">
+    <div class="qmeta"><span>Pregunta ${this.i+1} de ${n}</span><span>${this.opts.exam?'<span class="timer" id="timer"></span>':esc(TOPICS[q.t])}</span></div>
+    <div class="progress"><span style="width:${pct}%"></span></div>
+    ${q.p?`<div class="dlg">${esc(q.p).replace(/\n/g,'<br>')}</div>`:''}
+    <p class="qtext">${esc(q.q)}</p>
+    <div class="opts">${q.order.map((oi,k)=>`<button class="opt" data-oi="${oi}"><b>${L[k]}</b><span>${esc(q.o[oi])}</span></button>`).join('')}</div>
+    <div id="fb"></div>
+    <div class="row-actions" style="margin-top:14px"><button class="btn" id="nextBtn" ${this.opts.exam?'':'disabled'}>${this.i===n-1?'Ver resultado':'Siguiente'}</button>
+    ${this.opts.exam?'<span class="note" id="examHint">Puedes cambiar la respuesta hasta pulsar Siguiente.</span>':''}</div>
+  </div>`;
+  const btns=[...this.area.querySelectorAll('.opt')];
+  btns.forEach(b=>b.addEventListener('click',()=>self.choose(parseInt(b.dataset.oi,10),btns)));
+  this.area.querySelector('#nextBtn').addEventListener('click',()=>self.next());
+  this.area.querySelector('.qcard').scrollIntoView({block:'start'});
+  this.tick();
+  if(this.opts.exam && !this.iv){this.iv=setInterval(()=>self.tick(),1000)}
+};
+Runner.prototype.tick=function(){
+  const el=this.area.querySelector('#timer'); if(!el) return;
+  const left=75*60-Math.floor((Date.now()-this.t0)/1000);
+  const m=Math.floor(Math.abs(left)/60), sc=Math.abs(left)%60;
+  el.textContent=(left<0?'Tiempo agotado +':'Quedan ')+m+':'+String(sc).padStart(2,'0');
+  el.classList.toggle('late',left<0);
+};
+Runner.prototype.choose=function(oi,btns){
+  const q=this.list[this.i];
+  if(this.opts.exam){
+    this.answers[this.i]=oi;
+    btns.forEach(b=>b.style.borderColor=parseInt(b.dataset.oi,10)===oi?'var(--ink)':'');
+    btns.forEach(b=>b.style.borderWidth=parseInt(b.dataset.oi,10)===oi?'3px':'');
+    return;
+  }
+  if(this.answers[this.i]!==undefined) return;
+  this.answers[this.i]=oi;
+  const right=oi===q.a;
+  if(right){this.ok++;removeFail(q.id)}else addFail(q.id);
+  btns.forEach(b=>{const v=parseInt(b.dataset.oi,10);b.disabled=true;if(v===q.a)b.classList.add('ok');else if(v===oi)b.classList.add('ko')});
+  this.area.querySelector('#fb').innerHTML=`<div class="feedback ${right?'ok':'ko'}"><strong>${right?'Correcto.':'Incorrecto.'}</strong> ${esc(q.e)}<span class="r">${esc(q.r)}</span></div>`;
+  this.area.querySelector('#nextBtn').disabled=false;
+};
+Runner.prototype.next=function(){
+  if(this.opts.exam && this.answers[this.i]===undefined){
+    const h=this.area.querySelector('#examHint'); if(h) h.textContent='Elige una respuesta para continuar (en el examen real no dejes ninguna en blanco).'; return;
+  }
+  if(this.i<this.list.length-1){this.i++;this.render()} else this.finish();
+};
+Runner.prototype.finish=function(){
+  if(this.iv){clearInterval(this.iv);this.iv=null}
+  const n=this.list.length; let ok=this.ok;
+  if(this.opts.exam){ok=0;this.list.forEach((q,i)=>{if(this.answers[i]===q.a){ok++;removeFail(q.id)}else addFail(q.id)})}
+  const mins=Math.round((Date.now()-this.t0)/60000);
+  const pct=Math.round(ok/n*100);
+  let breakdown='';
+  if(this.opts.exam){
+    const parts={con:[0,0,'Conocimientos'],pra:[0,0,'Módulo práctico'],dia:[0,0,'Diálogo']};
+    this.list.forEach((q,i)=>{const k=q.t==='practico'?'pra':q.t==='dialogo'?'dia':'con';parts[k][1]++;if(this.answers[i]===q.a)parts[k][0]++});
+    let all=true;
+    const rows=Object.values(parts).map(p=>{const nota=p[1]?p[0]/p[1]*10:0;const okp=nota>=5;if(!okp)all=false;
+      return `<tr><td>${p[2]}</td><td>${p[0]}/${p[1]}</td><td>${nota.toFixed(1).replace('.',',')}</td><td class="${okp?'pass':'fail'}">${okp?'Superada':'No superada'}</td></tr>`}).join('');
+    breakdown=`<div class="tablewrap"><table><thead><tr><th>Parte</th><th>Aciertos</th><th>Nota</th><th>Mínimo 5</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="${all?'pass':'fail'}">${all?'Apto en las tres partes.':'No apto: en el examen las partes son eliminatorias.'}</p><p>Tiempo empleado: ${mins} min de 75.</p>`;
+  }
+  const wrong=this.list.map((q,i)=>({q,a:this.answers[i]})).filter(x=>x.a!==x.q.a);
+  this.area.innerHTML=`<div class="qcard">
+    <div class="qmeta"><span>Resultado</span><span>${n} preguntas</span></div>
+    <div class="score">${ok}/${n}</div>
+    <p>${pct}% de aciertos. ${pct>=80?'Buen nivel: sigue repasando las cifras.':'Repasa la teoría de los temas en los que has fallado y vuelve a intentarlo.'}</p>
+    ${breakdown}
+    ${wrong.length?`<h3>Para repasar</h3><ol class="review">${wrong.map(w=>`<li>${esc(w.q.q)}<br><span class="bad">${w.a===undefined?'Sin responder':'Tu respuesta: '+esc(w.q.o[w.a])}</span><br>Correcta: <strong>${esc(w.q.o[w.q.a])}</strong><br><span class="ref">${esc(w.q.e)} (${esc(w.q.r)})</span></li>`).join('')}</ol>`:'<p>Sin fallos. 👏</p>'}
+    <div class="row-actions"><button class="btn" id="again">Repetir con preguntas nuevas</button></div>
+  </div>`;
+  this.area.querySelector('#again').addEventListener('click',()=>this.opts.onAgain&&this.opts.onAgain());
+  this.area.querySelector('.qcard').scrollIntoView({block:'start'});
+};
+
+/* ---------- Test por temas ---------- */
+const chipBox=document.getElementById('topicChips');
+const sel=new Set(Object.keys(TOPICS));
+Object.entries(TOPICS).forEach(([k,v])=>{
+  const c=document.createElement('button');c.className='chip';c.textContent=v+' ('+Q.filter(q=>q.t===k).length+')';
+  c.setAttribute('aria-pressed','true');
+  c.addEventListener('click',()=>{if(sel.has(k)){sel.delete(k);c.setAttribute('aria-pressed','false')}else{sel.add(k);c.setAttribute('aria-pressed','true')}});
+  chipBox.appendChild(c);
+});
+function startTest(){
+  const pool=Q.filter(q=>sel.has(q.t));
+  if(!pool.length){document.getElementById('testArea').innerHTML='<p class="warn">Elige al menos un tema para empezar.</p>';return}
+  const n=Math.min(parseInt(document.getElementById('nQ').value,10),pool.length);
+  new Runner(document.getElementById('testArea'),shuffle(pool).slice(0,n),{onAgain:startTest});
+}
+document.getElementById('startTest').addEventListener('click',startTest);
+document.getElementById('startFails').addEventListener('click',()=>{
+  const f=getFails(); const pool=Q.filter(q=>f.includes(q.id));
+  if(!pool.length){document.getElementById('testArea').innerHTML='<p class="warn">No tienes fallos guardados. Haz un test y los que falles aparecerán aquí.</p>';return}
+  new Runner(document.getElementById('testArea'),shuffle(pool),{onAgain:()=>document.getElementById('startFails').click()});
+});
+updFailCount();
+
+/* ---------- Simulacro ---------- */
+function startSim(){
+  const con=shuffle(Q.filter(q=>q.t!=='practico'&&q.t!=='dialogo')).slice(0,20);
+  const pra=shuffle(Q.filter(q=>q.t==='practico')).slice(0,10);
+  const pick=l=>{const ids=[...new Set(Q.filter(q=>q.lang===l).map(q=>q.d))];const d=ids[Math.floor(Math.random()*ids.length)];return Q.filter(q=>q.d===d)};
+  new Runner(document.getElementById('simArea'),con.concat(pra,pick('ca'),pick('es')),{exam:true,onAgain:startSim});
+}
+document.getElementById('startSim').addEventListener('click',startSim);
+
+/* ---------- Fichas ---------- */
+const CARDS=[
+["¿Desde qué aforo es obligatorio el PCA en locales musicales?","A partir de 150 personas (art. 57)."],
+["¿Y en régimen especial?","Siempre, con cualquier aforo (art. 57.c)."],
+["Nº mínimo de PCA con 150–500 / 501–1.000 / +1.001","2 / 3 / 4 y uno más por cada 1.000 (art. 58)."],
+["Vigilantes en locales musicales","1 desde 501, 2 desde 1.001, +1 por cada 1.000 (art. 43)."],
+["¿Puede el PCA hacer funciones de vigilante?","Nunca (arts. 44.3 y 60.2)."],
+["Alteración del orden en el acceso","Avisar de inmediato a los vigilantes; si no hay, a la policía de Cataluña."],
+["Sistema automático de aforo","Desde 151 en locales musicales y extraordinarios cerrados; desde 1.000 al aire libre; régimen especial siempre."],
+["Conservación de las imágenes","3 meses (art. 69)."],
+["Tiempo para salir al cierre","30 min hasta 500 personas; 45 min con más de 500 (art. 71)."],
+["Cierre mínimo de locales ininterrumpidos","2 horas de cada 24 (art. 70.2)."],
+["Edades de acceso","14: discoteca de juventud. 16: discotecas, bares musicales, salas de conciertos… 18: régimen especial, naturaleza sexual, juego."],
+["¿Cómo se comprueba la edad?","Con la exhibición de documentos oficiales de identidad (art. 60.1.c)."],
+["Requisitos para presentarse","Mayor de edad; nacionalidad UE o permiso de residencia y trabajo; sin condenas contra personas, patrimonio o salud pública; conocimientos mínimos de catalán y castellano; curso hecho."],
+["Curso de formación","60 h: 35 de conocimientos + 25 prácticas. Asistencia mínima 90%."],
+["Vigencia del carnet","4 años (art. 63.3)."],
+["Renovación","Pedirla al menos 2 meses antes; la Administración resuelve en un máximo de 2 meses."],
+["Causas de revocación","Pasar 1 año caducado sin renovar; condena por delitos contra personas, patrimonio o salud pública; 2 o más faltas graves o muy graves en 1 año."],
+["Entrega del carnet revocado","10 días hábiles. Recurso de alzada ante el titular del departamento."],
+["Derecho de admisión: requisitos","Condiciones concretas y objetivas, en rótulo visible, copia al servicio territorial, hoja sellada en el local."],
+["Discriminar en el acceso","Falta muy grave (Llei 11/2009, art. 47.i)."],
+["Admitir menores donde está prohibido","Grave; si es reiterado, muy grave."],
+["Admisión sin comunicar a la autoridad","Falta leve (art. 49.1.d)."],
+["Sanción al PCA por falta grave","Suspensión de hasta 6 meses o revocación de la habilitación (art. 51.h)."],
+["Multas al público","Leve: 50–150 €. Grave: 151–500 €."],
+["Multas a titulares","Leve 300–1.000 €. Grave 1.001–10.000 €. Muy grave 10.001–100.000 €."],
+["Cierre de una discoteca","5.00 h; fines de semana y vísperas de festivo, 60 minutos más."],
+["Cierre de un bar musical","2.30 h; fines de semana y vísperas de festivo, 30 minutos más."],
+["Horario de discoteca de juventud","De 17.00 a 22.00 h."],
+["Hoja de reclamación: ejemplares","Tres: consumidor, organismo habilitado y establecimiento. El cliente se lleva dos."],
+["¿Hay que dar la hoja a quien no ha consumido?","Sí, de inmediato y sin pedir explicaciones."],
+["Queja, reclamación y denuncia","Queja: hechos sin infracción. Reclamación: pide reparación. Denuncia: posible infracción."],
+["Alcohol y tabaco","Prohibida la venta o el suministro a menores de 18. Cartel visible sobre el alcohol."],
+["Armas en locales públicos","Llevarlas se considera ilícito (Reglamento de armas, art. 146.2). Acceso impedido."],
+["Actos contra la libertad sexual (no delito)","Falta grave (Ley 11/2009, art. 48.s)."],
+["Estructura del examen","20 + 10 + 10 preguntas, 1 h 15 min, mínimo 5 en cada parte, eliminatorias. Luego psicotécnico."],
+["Prescripción de faltas","Muy graves 3 años, graves 2, leves 6 meses."],
+["Conducta PAS","Proteger, Avisar (112), Socorrer."]
+];
+document.getElementById('cards').innerHTML=CARDS.map(c=>`<button class="card" aria-expanded="false"><span class="f">${esc(c[0])}</span><span class="b">${esc(c[1])}</span><span class="hint">Toca para girar</span></button>`).join('');
+document.querySelectorAll('.card').forEach(c=>c.addEventListener('click',()=>c.setAttribute('aria-expanded',c.getAttribute('aria-expanded')==='true'?'false':'true')));
+</script>
+</body>
+</html>
