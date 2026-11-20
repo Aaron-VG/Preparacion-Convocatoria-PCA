@@ -98,6 +98,15 @@ article.t a,.warn a,.setup a{color:var(--focus)}
 .warn{border:1px dashed var(--line);padding:10px 14px;border-radius:8px;color:var(--muted);font-size:14px;background:var(--surface)}
 
 /* Quiz */
+.vwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.vwrap video{width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;display:block}
+.chlist{list-style:none;padding:0;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.chlist button{display:flex;gap:12px;width:100%;text-align:left;font:inherit;font-size:15px;background:transparent;color:var(--ink);border:0;border-top:1px solid var(--line);padding:9px 14px;cursor:pointer}
+.chlist li:first-child button{border-top:0}
+.chlist button:hover,.chlist button.on{background:var(--bg)}
+.chlist button.on{font-weight:700}
+.chlist time{color:var(--muted);font-variant-numeric:tabular-nums;min-width:44px}
+@media (max-width:860px){.vwrap{grid-template-columns:1fr}}
 .setup{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:20px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
 .chip{border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:14px;cursor:pointer}
@@ -163,6 +172,7 @@ article.t a,.warn a,.setup a{color:var(--focus)}
     <h1>Preparación convocatoria PCA/02/2026</h1>
     <nav class="tabs" role="tablist" aria-label="Secciones">
       <button role="tab" data-tab="inicio" aria-selected="true">Inicio</button>
+      <button role="tab" data-tab="video" aria-selected="false">Vídeo</button>
       <button role="tab" data-tab="teoria" aria-selected="false">Teoría</button>
       <button role="tab" data-tab="test" aria-selected="false">Test por temas</button>
       <button role="tab" data-tab="simulacro" aria-selected="false">Simulacro</button>
@@ -198,6 +208,20 @@ article.t a,.warn a,.setup a{color:var(--focus)}
       <p class="note">Herramienta de repaso. Para más de 1.000 personas se aplica «uno más por cada 1.000»; ante la duda, manda el texto del artículo.</p>
     </div>
   </div>
+</section>
+
+<!-- ============ VÍDEO ============ -->
+<section class="panel" id="p-video" role="tabpanel">
+  <h2 style="margin:0 0 4px;font-variation-settings:'wdth' 72;font-size:28px">Toda la teoría en vídeo</h2>
+  <p style="margin:0 0 16px;color:var(--muted)">Vídeo narrado con los 15 temas. Pulsa un tema para saltar a él; los subtítulos se activan desde el reproductor. Puedes cambiar la velocidad en el menú del reproductor.</p>
+  <div class="vwrap">
+    <video id="vid" controls preload="metadata" playsinline>
+      <source src="PCA_teoria_completa.mp4" type="video/mp4">
+      <track kind="subtitles" srclang="es" label="Español" src="subtitulos.vtt">
+    </video>
+    <ol class="chlist" id="chlist"><li><button data-t="0"><time>0:00</time><span>Introducción</span></button></li><li><button data-t="36"><time>0:36</time><span>El examen</span></button></li><li><button data-t="145"><time>2:25</time><span>Marco normativo</span></button></li><li><button data-t="321"><time>5:21</time><span>Derechos y obligaciones</span></button></li><li><button data-t="428"><time>7:08</time><span>Derecho de admisión</span></button></li><li><button data-t="591"><time>9:51</time><span>Menores, alcohol y tabaco</span></button></li><li><button data-t="714"><time>11:54</time><span>El personal de control de acceso</span></button></li><li><button data-t="899"><time>14:59</time><span>Habilitación, carnet y revocación</span></button></li><li><button data-t="1043"><time>17:23</time><span>Seguridad, vigilantes y salud</span></button></li><li><button data-t="1153"><time>19:13</time><span>Control del aforo</span></button></li><li><button data-t="1247"><time>20:47</time><span>Horarios y cierre</span></button></li><li><button data-t="1393"><time>23:13</time><span>Hojas de reclamación</span></button></li><li><button data-t="1476"><time>24:36</time><span>Armas y objetos peligrosos</span></button></li><li><button data-t="1559"><time>25:59</time><span>Infracciones y sanciones</span></button></li><li><button data-t="1702"><time>28:22</time><span>Módulo práctico</span></button></li><li><button data-t="1846"><time>30:46</time><span>Repaso de cifras</span></button></li></ol>
+  </div>
+  <p class="note">¿No carga? <a href="PCA_teoria_completa.mp4" download>Descarga el vídeo</a>.</p>
 </section>
 
 <!-- ============ TEORÍA ============ -->
@@ -649,6 +673,14 @@ document.querySelectorAll('article.t a[href^="#t"]').forEach(a=>a.addEventListen
   e.preventDefault(); const el=document.querySelector(a.getAttribute('href')); if(el) el.scrollIntoView();
 }));
 document.querySelectorAll('article.t a[href^="http"]').forEach(a=>{a.target='_blank';a.rel='noopener'});
+
+/* ---------- Vídeo ---------- */
+(function(){
+  const v=document.getElementById('vid'), btns=[...document.querySelectorAll('#chlist button')];
+  btns.forEach(b=>b.addEventListener('click',()=>{v.currentTime=+b.dataset.t;v.play().catch(()=>{})}));
+  v.addEventListener('timeupdate',()=>{let k=0;btns.forEach((b,i)=>{if(v.currentTime>=+b.dataset.t)k=i});btns.forEach((b,i)=>b.classList.toggle('on',i===k))});
+  tabs.forEach(b=>b.addEventListener('click',()=>{if(b.dataset.tab!=='video'&&!v.paused)v.pause()}));
+})();
 
 /* ---------- Calculadora ---------- */
 function calc(){

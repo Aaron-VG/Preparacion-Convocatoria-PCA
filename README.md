@@ -6,6 +6,7 @@ Página de estudio para las pruebas de habilitación como personal de control de
 
 Incluye:
 
+- Vídeo narrado de 33 minutos con toda la teoría, capítulos y subtítulos (`PCA_teoria_completa.mp4`)
 - Calculadora de requisitos según el aforo
 - Teoría por temas, con referencias a la normativa
 - Tests por temas con explicación y artículo
